@@ -1,6 +1,7 @@
 package br.com.lmuniz.desafio.senai.controllers;
 
 import br.com.lmuniz.desafio.senai.domains.dtos.CouponDTO;
+import br.com.lmuniz.desafio.senai.domains.dtos.CouponDetailsDTO;
 import br.com.lmuniz.desafio.senai.services.CouponService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -31,5 +32,10 @@ public class CouponController {
     @GetMapping
     public ResponseEntity<List<CouponDTO>> getAllCoupons(@RequestParam(value = "onlyValid", defaultValue = "false") boolean onlyValid) {
         return ResponseEntity.ok(couponService.getAllCoupons(onlyValid));
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<CouponDetailsDTO> getCouponById(@PathVariable Long id){
+        return ResponseEntity.ok(couponService.getCouponById(id));
     }
 }

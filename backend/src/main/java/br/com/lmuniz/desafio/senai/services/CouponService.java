@@ -1,6 +1,7 @@
 package br.com.lmuniz.desafio.senai.services;
 
 import br.com.lmuniz.desafio.senai.domains.dtos.CouponDTO;
+import br.com.lmuniz.desafio.senai.domains.dtos.CouponDetailsDTO;
 import br.com.lmuniz.desafio.senai.domains.entities.Coupon;
 import br.com.lmuniz.desafio.senai.domains.enums.CouponEnum;
 import br.com.lmuniz.desafio.senai.repositories.CouponRepository;
@@ -88,5 +89,12 @@ public class CouponService {
         }
 
         return result.stream().map(CouponDTO::new).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public CouponDetailsDTO getCouponById(Long id) {
+        return couponRepository.findById(id)
+                .map(CouponDetailsDTO::new)
+                .orElseThrow(() -> new IllegalArgumentException("Coupon with ID " + id + " not found"));
     }
 }
