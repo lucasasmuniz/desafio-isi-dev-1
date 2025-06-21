@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 @Entity
@@ -34,6 +36,9 @@ public class Product {
 
     @Column(columnDefinition = "TIMESTAMP WITHOUT TIME ZONE")
     private Instant deletedAt;
+
+    @OneToMany(mappedBy = "product", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    private final List<ProductCouponApplication> productCouponApplications = new ArrayList<>();
 
     public Product(){
     }
@@ -107,6 +112,10 @@ public class Product {
 
     public void setDeletedAt(Instant deletedAt) {
         this.deletedAt = deletedAt;
+    }
+
+    public List<ProductCouponApplication> getProductCouponApplications() {
+        return productCouponApplications;
     }
 
     @PrePersist
