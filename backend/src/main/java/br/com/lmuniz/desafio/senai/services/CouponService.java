@@ -79,8 +79,14 @@ public class CouponService {
     }
 
     @Transactional(readOnly = true)
-    public List<CouponDTO> getAllCoupons() {
+    public List<CouponDTO> getAllCoupons(boolean onlyValid) {
+        List<Coupon> result = null;
+        if (onlyValid){
+            result = couponRepository.searchValidCoupons(Instant.now());
+        }else {
+            result = couponRepository.findAll();
+        }
 
-        return couponRepository.findAll().stream().map(CouponDTO::new).toList();
+        return result.stream().map(CouponDTO::new).toList();
     }
 }

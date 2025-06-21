@@ -29,7 +29,7 @@ public class CouponController {
     }
 
     @GetMapping
-    public ResponseEntity<List<CouponDTO>> getAllCoupons() {
-        return ResponseEntity.ok(couponService.getAllCoupons());
+    public ResponseEntity<List<CouponDTO>> getAllCoupons(@RequestParam(value = "onlyValid", defaultValue = "false") boolean onlyValid) {
+        return ResponseEntity.ok(couponService.getAllCoupons(onlyValid));
     }
 }
