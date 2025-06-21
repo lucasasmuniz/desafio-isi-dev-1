@@ -3,6 +3,7 @@ package br.com.lmuniz.desafio.senai.services;
 import br.com.lmuniz.desafio.senai.domains.dtos.ProductCreateDTO;
 import br.com.lmuniz.desafio.senai.domains.entities.Product;
 import br.com.lmuniz.desafio.senai.repositories.ProductRepository;
+import br.com.lmuniz.desafio.senai.utils.Utils;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -15,13 +16,15 @@ public class ProductService {
     }
 
     public ProductCreateDTO createProduct(ProductCreateDTO dto){
-        final String normalizedName = dto.name().trim().replaceAll("\\s+", " ");
+        final String name = dto.name().trim().replaceAll("\\s+", " ");
+        final String normalizedName = Utils.normalizeName(name);
 
-        if(productRepository.existsByName(normalizedName)){
-            throw new IllegalArgumentException("Product with name '" + normalizedName + "' already exists.");
+        if(productRepository.existsByNormalizedName(normalizedName)){
+            throw new IllegalArgumentException("Product with name '" + name + "' already exists.");
         }
 
         Product entity = new Product(
+                name,
                 normalizedName,
                 dto.description(),
                 dto.price(),

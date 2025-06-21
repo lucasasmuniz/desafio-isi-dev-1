@@ -16,13 +16,16 @@ public class Product {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true, length = 100)
+    @Column(nullable = false, length = 100)
     private String name;
+
+    @Column(nullable = false, unique = true, length = 100)
+    private String normalizedName;
 
     @Column(length = 300, columnDefinition = "TEXT")
     private String description;
 
-    @Column(nullable = false, scale = 2)
+    @Column(nullable = false, scale = 2, precision = 9)
     private BigDecimal price;
 
     @Column(nullable = false)
@@ -43,8 +46,9 @@ public class Product {
     public Product(){
     }
 
-    public Product(String name, String description, BigDecimal price, Integer stock) {
+    public Product(String name, String normalizedName,String description, BigDecimal price, Integer stock) {
         this.name = name;
+        this.normalizedName = normalizedName;
         this.description = description;
         this.price = price;
         this.stock = stock;
@@ -64,6 +68,14 @@ public class Product {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getNormalizedName() {
+        return normalizedName;
+    }
+
+    public void setNormalizedName(String normalizedName) {
+        this.normalizedName = normalizedName;
     }
 
     public String getDescription() {
