@@ -38,4 +38,10 @@ public class CouponController {
     public ResponseEntity<CouponDetailsDTO> getCouponById(@PathVariable Long id){
         return ResponseEntity.ok(couponService.getCouponById(id));
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteCoupon(@PathVariable Long id) {
+        couponService.deleteCoupon(id);
+        return ResponseEntity.noContent().build();
+    }
 }

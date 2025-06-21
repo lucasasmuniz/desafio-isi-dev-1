@@ -6,7 +6,9 @@ import br.com.lmuniz.desafio.senai.domains.entities.Coupon;
 import br.com.lmuniz.desafio.senai.domains.enums.CouponEnum;
 import br.com.lmuniz.desafio.senai.repositories.CouponRepository;
 import br.com.lmuniz.desafio.senai.utils.Utils;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
@@ -96,5 +98,13 @@ public class CouponService {
         return couponRepository.findById(id)
                 .map(CouponDetailsDTO::new)
                 .orElseThrow(() -> new IllegalArgumentException("Coupon with ID " + id + " not found"));
+    }
+
+    @Transactional
+    public void deleteCoupon(Long id){
+        Coupon entity = couponRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Coupon with ID " + id + " not found"));
+        entity.setDeletedAt(Instant.now());
+        couponRepository.save(entity);
     }
 }
