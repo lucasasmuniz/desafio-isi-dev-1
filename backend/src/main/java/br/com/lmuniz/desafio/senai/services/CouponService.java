@@ -6,9 +6,9 @@ import br.com.lmuniz.desafio.senai.domains.enums.CouponEnum;
 import br.com.lmuniz.desafio.senai.repositories.CouponRepository;
 import br.com.lmuniz.desafio.senai.utils.Utils;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.List;
@@ -22,6 +22,7 @@ public class CouponService {
         this.couponRepository = couponRepository;
     }
 
+    @Transactional
     public CouponDTO createCoupon(CouponDTO couponDTO){
         final String normalizedCode = Utils.normalizeName(couponDTO.code());
         validateCoupon(couponDTO, normalizedCode);
@@ -75,5 +76,11 @@ public class CouponService {
         if (futureInstant.isBefore(dto.validUntil())) {
             throw new IllegalArgumentException("Valid until date must be within 5 years from valid from date");
         }
+    }
+
+    @Transactional(readOnly = true)
+    public List<CouponDTO> getAllCoupons() {
+
+        return couponRepository.findAll().stream().map(CouponDTO::new).toList();
     }
 }

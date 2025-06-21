@@ -5,6 +5,7 @@ import br.com.lmuniz.desafio.senai.domains.entities.Product;
 import br.com.lmuniz.desafio.senai.repositories.ProductRepository;
 import br.com.lmuniz.desafio.senai.utils.Utils;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class ProductService {
@@ -15,6 +16,7 @@ public class ProductService {
         this.productRepository = productRepository;
     }
 
+    @Transactional
     public ProductCreateDTO createProduct(ProductCreateDTO dto){
         final String name = dto.name().trim().replaceAll("\\s+", " ");
         final String normalizedName = Utils.normalizeName(name);
