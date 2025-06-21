@@ -10,7 +10,7 @@ public enum CouponEnum {
         this.type = type;
     }
 
-    public String getType() {
+    public String getTypeValue() {
         return type;
     }
 
