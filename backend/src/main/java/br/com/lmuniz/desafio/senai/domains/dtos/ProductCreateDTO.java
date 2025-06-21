@@ -1,6 +1,8 @@
 package br.com.lmuniz.desafio.senai.domains.dtos;
 
 import br.com.lmuniz.desafio.senai.domains.entities.Product;
+import br.com.lmuniz.desafio.senai.serializers.PriceDeserializer;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import jakarta.validation.constraints.*;
 
 import java.math.BigDecimal;
@@ -24,6 +26,7 @@ public record ProductCreateDTO(Long id,
                                @NotNull(message = "Required field")
                                @DecimalMin(value = "0.01", inclusive = true, message = "Price must be greater than or equal to 0.01")
                                @DecimalMax(value = "1000000.00", inclusive = true, message = "Price must be less than or equal to 1000000.00")
+                               @JsonDeserialize(using = PriceDeserializer.class)
                                BigDecimal price) {
     public ProductCreateDTO(Product entity) {
         this(entity.getId(), entity.getName(), entity.getDescription(), entity.getStock(), entity.getPrice());
