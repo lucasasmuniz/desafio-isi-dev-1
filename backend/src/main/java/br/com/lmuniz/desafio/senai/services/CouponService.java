@@ -6,9 +6,10 @@ import br.com.lmuniz.desafio.senai.domains.entities.Coupon;
 import br.com.lmuniz.desafio.senai.domains.enums.CouponEnum;
 import br.com.lmuniz.desafio.senai.repositories.CouponRepository;
 import br.com.lmuniz.desafio.senai.utils.Utils;
-import org.springframework.dao.DataIntegrityViolationException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.fge.jsonpatch.JsonPatch;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -22,9 +23,11 @@ import java.util.Objects;
 public class CouponService {
 
     private final CouponRepository couponRepository;
+    private final ObjectMapper objectMapper;
 
-    public CouponService (CouponRepository couponRepository) {
+    public CouponService (CouponRepository couponRepository, ObjectMapper objectMapper) {
         this.couponRepository = couponRepository;
+        this.objectMapper = objectMapper;
     }
 
     @Transactional
