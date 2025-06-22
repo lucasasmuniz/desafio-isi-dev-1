@@ -1,5 +1,7 @@
 package br.com.lmuniz.desafio.senai.domains.enums;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+
 public enum CouponEnum {
     PERCENT("percent"),
     FIXED("fixed");
@@ -12,6 +14,19 @@ public enum CouponEnum {
 
     public String getTypeValue() {
         return type;
+    }
+
+    @JsonCreator
+    public static CouponEnum fromString(String value) {
+        if (value == null) {
+            return null;
+        }
+        for (CouponEnum couponEnum : CouponEnum.values()) {
+            if (couponEnum.getTypeValue().equalsIgnoreCase(value)) {
+                return couponEnum;
+            }
+        }
+        throw new IllegalArgumentException("Invalid coupon type: " + value);
     }
 
     @Override

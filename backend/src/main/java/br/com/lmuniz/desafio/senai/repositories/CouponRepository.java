@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface CouponRepository extends JpaRepository<Coupon, Long> {
@@ -15,4 +16,6 @@ public interface CouponRepository extends JpaRepository<Coupon, Long> {
 
     @Query("SELECT c FROM Coupon c WHERE c.deletedAt IS NULL AND :now BETWEEN c.validFrom AND c.validUntil AND (c.maxUses IS NULL OR c.usesCount < c.maxUses)")
     List<Coupon> searchValidCoupons(@Param("now") Instant now);
+
+    Optional<Coupon> findByCodeAndIdNot(String code, Long id);
 }

@@ -11,10 +11,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 public class CouponService {
@@ -44,41 +46,10 @@ public class CouponService {
                 couponDTO.validFrom(),
                 couponDTO.validUntil()
         );
+        validateCoupon(entity);
 
         entity = couponRepository.save(entity);
         return new CouponDTO(entity);
-    }
-
-    protected void validateCoupon(CouponDTO dto, String normalizedCode){
-        if (couponRepository.existsByCode(normalizedCode)) {
-            throw new IllegalArgumentException("Coupon code '" + normalizedCode + "' already exists");
-        }
-        if (dto.validFrom().isAfter(dto.validUntil())) {
-            throw new IllegalArgumentException("Valid from date must be before valid until date");
-        }
-
-        List<String> reservedCodes = List.of("admin", "auth", "null", "undefined");
-        if (reservedCodes.contains(normalizedCode)) {
-            throw new IllegalArgumentException("Coupon code '" + normalizedCode + "' is reserved.");
-        }
-
-        CouponEnum type = CouponEnum.valueOf(dto.type().toUpperCase());
-        if (type == CouponEnum.PERCENT) {
-            if (dto.value().doubleValue() < 1 || dto.value().doubleValue() > 80) {
-                throw new IllegalArgumentException("For percent type, value must be between 1 and 80.");
-            }
-        } else if (type == CouponEnum.FIXED && dto.value().doubleValue() <= 0) {
-                throw new IllegalArgumentException("For fixed type, value must be positive.");
-            }
-
-        ZonedDateTime zoned = dto.validFrom().atZone(ZoneOffset.UTC);
-        ZonedDateTime future = zoned.plusYears(5);
-
-        Instant futureInstant = future.toInstant();
-
-        if (futureInstant.isBefore(dto.validUntil())) {
-            throw new IllegalArgumentException("Valid until date must be within 5 years from valid from date");
-        }
     }
 
     @Transactional(readOnly = true)
@@ -106,5 +77,108 @@ public class CouponService {
                 .orElseThrow(() -> new IllegalArgumentException("Coupon with ID " + id + " not found"));
         entity.setDeletedAt(Instant.now());
         couponRepository.save(entity);
+    }
+
+    @Transactional
+    public CouponDetailsDTO partialUpdateCoupon(Long id, JsonPatch patch) {
+        Coupon patchedCoupon;
+        Coupon entity = couponRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Coupon with ID " + id + " not found"));
+        try {
+            JsonNode originalNode = objectMapper.valueToTree(entity);
+
+            JsonNode patchedNode = patch.apply(originalNode);
+            patchedCoupon = objectMapper.treeToValue(patchedNode, Coupon.class);
+
+            if (!entity.getCode().equals(patchedCoupon.getCode())) {
+                throw new IllegalArgumentException("Coupon code cannot be changed");
+            }
+            if (!Objects.equals(entity.getUsesCount(), patchedCoupon.getUsesCount())) {
+                throw new IllegalArgumentException("Usage count cannot be changed manually");
+            }
+            if (!entity.getCreatedAt().equals(patchedCoupon.getCreatedAt())) {
+                throw new IllegalArgumentException("Creation date cannot be changed");
+            }
+
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Invalid patch operation: " + e.getMessage());
+        }
+
+        validateCoupon(patchedCoupon);
+        Coupon couponResult = couponRepository.saveAndFlush(patchedCoupon);
+
+        return new CouponDetailsDTO(couponResult);
+    }
+
+    protected void validateCoupon(Coupon entity) {
+        Long id = (entity.getId() == null) ? -1L : entity.getId();
+
+        validateRequiredFields(entity);
+        validateBusinessRules(entity, id);
+        validateTemporalRules(entity);
+    }
+
+    private void validateRequiredFields(Coupon entity) {
+        if (entity.getCode() == null || entity.getCode().isBlank()) {
+            throw new IllegalArgumentException("Code is required");
+        }
+        if (entity.getType() == null) {
+            throw new IllegalArgumentException("Type is required");
+        }
+        if (entity.getValue() == null) {
+            throw new IllegalArgumentException("Value is required");
+        }
+        if (entity.getValidFrom() == null) {
+            throw new IllegalArgumentException("Valid from date is required");
+        }
+        if (entity.getValidUntil() == null) {
+            throw new IllegalArgumentException("Valid until date is required");
+        }
+    }
+
+    private void validateBusinessRules(Coupon entity, Long id) {
+        if (couponRepository.findByCodeAndIdNot(entity.getCode(), id).isPresent()) {
+            throw new IllegalArgumentException("Coupon code '" + entity.getCode() + "' already exists");
+        }
+
+        List<String> reservedCodes = List.of("admin", "auth", "null", "undefined");
+        if (reservedCodes.contains(entity.getCode())) {
+            throw new IllegalArgumentException("Coupon code '" + entity.getCode() + "' is reserved");
+        }
+
+        if (entity.getOneShot() && entity.getMaxUses() != null) {
+            throw new IllegalArgumentException("If oneShot is true, maxUses must be null");
+        }
+
+        if (!entity.getOneShot() && entity.getMaxUses() != null && entity.getMaxUses() < entity.getUsesCount()) {
+            throw new IllegalArgumentException("Max uses cannot be set to a value lower than the current usage count (" + entity.getUsesCount() + ")");
+        }
+
+        CouponEnum type = entity.getType();
+        if (type == CouponEnum.PERCENT) {
+            if (entity.getValue().doubleValue() < 1 || entity.getValue().doubleValue() > 80) {
+                throw new IllegalArgumentException("For percent type, value must be between 1 and 80");
+            if (entity.getValue().compareTo(BigDecimal.ONE) < 0 || entity.getValue().compareTo(new BigDecimal("80")) > 0) {
+                throw new IllegalArgumentException("For percent type, value must be between 1 and 80.");
+            }
+        } else if (type == CouponEnum.FIXED && entity.getValue().compareTo(BigDecimal.ZERO) <= 0) {
+                throw new IllegalArgumentException("For fixed type, value must be positive.");
+            }
+    }
+
+    private void validateTemporalRules(Coupon entity) {
+        if (entity.getValidFrom().isAfter(entity.getValidUntil())) {
+            throw new IllegalArgumentException("Valid from date must be before valid until date");
+        }
+
+        if (entity.getValidUntil().isBefore(Instant.now())) {
+            throw new IllegalArgumentException("Valid until date must be in the future");
+        }
+
+        ZonedDateTime zoned = entity.getValidFrom().atZone(ZoneOffset.UTC);
+        ZonedDateTime future = zoned.plusYears(5);
+        if (future.toInstant().isBefore(entity.getValidUntil())) {
+            throw new IllegalArgumentException("Valid until date must be within 5 years from valid from date");
+        }
     }
 }

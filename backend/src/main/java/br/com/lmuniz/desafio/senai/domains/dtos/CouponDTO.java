@@ -1,7 +1,6 @@
 package br.com.lmuniz.desafio.senai.domains.dtos;
 
 import br.com.lmuniz.desafio.senai.domains.entities.Coupon;
-import br.com.lmuniz.desafio.senai.domains.enums.CouponEnum;
 import jakarta.validation.constraints.*;
 
 import java.math.BigDecimal;

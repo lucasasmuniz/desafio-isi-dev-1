@@ -32,7 +32,7 @@ public class Coupon {
 
     private Integer maxUses;
 
-    private Integer usesCount;
+    private Integer usesCount = 0;
 
     @Column(nullable = false, columnDefinition = "TIMESTAMP WITHOUT TIME ZONE")
     private Instant validFrom;
