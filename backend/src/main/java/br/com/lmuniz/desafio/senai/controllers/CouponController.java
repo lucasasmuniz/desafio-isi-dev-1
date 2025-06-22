@@ -3,6 +3,7 @@ package br.com.lmuniz.desafio.senai.controllers;
 import br.com.lmuniz.desafio.senai.domains.dtos.CouponDTO;
 import br.com.lmuniz.desafio.senai.domains.dtos.CouponDetailsDTO;
 import br.com.lmuniz.desafio.senai.services.CouponService;
+import com.github.fge.jsonpatch.JsonPatch;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -43,5 +44,13 @@ public class CouponController {
     public ResponseEntity<Void> deleteCoupon(@PathVariable Long id) {
         couponService.deleteCoupon(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping(value = "/{id}")
+    public ResponseEntity<CouponDetailsDTO> partialUpdateCoupon(
+            @PathVariable Long id,
+            @RequestBody JsonPatch patch) {
+        CouponDetailsDTO updatedCoupon = couponService.partialUpdateCoupon(id, patch);
+        return ResponseEntity.ok(updatedCoupon);
     }
 }

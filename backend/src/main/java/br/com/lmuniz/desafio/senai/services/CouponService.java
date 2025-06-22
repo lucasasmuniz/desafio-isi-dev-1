@@ -30,7 +30,6 @@ public class CouponService {
     @Transactional
     public CouponDTO createCoupon(CouponDTO couponDTO){
         final String normalizedCode = Utils.normalizeName(couponDTO.code());
-        validateCoupon(couponDTO, normalizedCode);
 
         Integer maxUses = couponDTO.maxUses();
         if(couponDTO.oneShot()){
@@ -156,8 +155,6 @@ public class CouponService {
 
         CouponEnum type = entity.getType();
         if (type == CouponEnum.PERCENT) {
-            if (entity.getValue().doubleValue() < 1 || entity.getValue().doubleValue() > 80) {
-                throw new IllegalArgumentException("For percent type, value must be between 1 and 80");
             if (entity.getValue().compareTo(BigDecimal.ONE) < 0 || entity.getValue().compareTo(new BigDecimal("80")) > 0) {
                 throw new IllegalArgumentException("For percent type, value must be between 1 and 80.");
             }
