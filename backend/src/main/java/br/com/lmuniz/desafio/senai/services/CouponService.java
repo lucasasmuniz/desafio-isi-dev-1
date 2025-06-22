@@ -5,6 +5,9 @@ import br.com.lmuniz.desafio.senai.domains.dtos.CouponDetailsDTO;
 import br.com.lmuniz.desafio.senai.domains.entities.Coupon;
 import br.com.lmuniz.desafio.senai.domains.enums.CouponEnum;
 import br.com.lmuniz.desafio.senai.repositories.CouponRepository;
+import br.com.lmuniz.desafio.senai.services.exceptions.BusinessRuleException;
+import br.com.lmuniz.desafio.senai.services.exceptions.ResourceConflictException;
+import br.com.lmuniz.desafio.senai.services.exceptions.ResourceNotFoundException;
 import br.com.lmuniz.desafio.senai.utils.Utils;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -70,13 +73,13 @@ public class CouponService {
     public CouponDetailsDTO getCouponById(Long id) {
         return couponRepository.findById(id)
                 .map(CouponDetailsDTO::new)
-                .orElseThrow(() -> new IllegalArgumentException("Coupon with ID " + id + " not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Coupon with ID " + id + " not found"));
     }
 
     @Transactional
     public void deleteCoupon(Long id){
         Coupon entity = couponRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Coupon with ID " + id + " not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Coupon with ID " + id + " not found"));
         entity.setDeletedAt(Instant.now());
         couponRepository.save(entity);
     }
@@ -85,7 +88,7 @@ public class CouponService {
     public CouponDetailsDTO partialUpdateCoupon(Long id, JsonPatch patch) {
         Coupon patchedCoupon;
         Coupon entity = couponRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Coupon with ID " + id + " not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Coupon with ID " + id + " not found"));
         try {
             JsonNode originalNode = objectMapper.valueToTree(entity);
 
@@ -93,17 +96,17 @@ public class CouponService {
             patchedCoupon = objectMapper.treeToValue(patchedNode, Coupon.class);
 
             if (!entity.getCode().equals(patchedCoupon.getCode())) {
-                throw new IllegalArgumentException("Coupon code cannot be changed");
+                throw new BusinessRuleException("Coupon code cannot be changed");
             }
             if (!Objects.equals(entity.getUsesCount(), patchedCoupon.getUsesCount())) {
-                throw new IllegalArgumentException("Usage count cannot be changed manually");
+                throw new BusinessRuleException("Usage count cannot be changed manually");
             }
             if (!entity.getCreatedAt().equals(patchedCoupon.getCreatedAt())) {
-                throw new IllegalArgumentException("Creation date cannot be changed");
+                throw new BusinessRuleException("Creation date cannot be changed");
             }
 
         } catch (Exception e) {
-            throw new IllegalArgumentException("Invalid patch operation: " + e.getMessage());
+            throw new BusinessRuleException(e.getMessage());
         }
 
         validateCoupon(patchedCoupon);
@@ -122,61 +125,62 @@ public class CouponService {
 
     private void validateRequiredFields(Coupon entity) {
         if (entity.getCode() == null || entity.getCode().isBlank()) {
-            throw new IllegalArgumentException("Code is required");
+            throw new BusinessRuleException("Code is required");
         }
         if (entity.getType() == null) {
-            throw new IllegalArgumentException("Type is required");
+            throw new BusinessRuleException("Type is required");
         }
         if (entity.getValue() == null) {
-            throw new IllegalArgumentException("Value is required");
+            throw new BusinessRuleException("Value is required");
         }
         if (entity.getValidFrom() == null) {
-            throw new IllegalArgumentException("Valid from date is required");
+            throw new BusinessRuleException("Valid from date is required");
         }
         if (entity.getValidUntil() == null) {
-            throw new IllegalArgumentException("Valid until date is required");
+            throw new BusinessRuleException("Valid until date is required");
         }
     }
 
     private void validateBusinessRules(Coupon entity, Long id) {
         if (couponRepository.findByCodeAndIdNot(entity.getCode(), id).isPresent()) {
-            throw new IllegalArgumentException("Coupon code '" + entity.getCode() + "' already exists");
+            throw new ResourceConflictException("Coupon code '" + entity.getCode() + "' already exists");
         }
 
         List<String> reservedCodes = List.of("admin", "auth", "null", "undefined");
         if (reservedCodes.contains(entity.getCode())) {
-            throw new IllegalArgumentException("Coupon code '" + entity.getCode() + "' is reserved");
+            throw new BusinessRuleException("Coupon code '" + entity.getCode() + "' is reserved");
         }
 
         if (entity.getOneShot() && entity.getMaxUses() != null) {
-            throw new IllegalArgumentException("If oneShot is true, maxUses must be null");
+            throw new BusinessRuleException("If coupon is one shot, max uses must be null");
         }
 
         if (!entity.getOneShot() && entity.getMaxUses() != null && entity.getMaxUses() < entity.getUsesCount()) {
-            throw new IllegalArgumentException("Max uses cannot be set to a value lower than the current usage count (" + entity.getUsesCount() + ")");
+            throw new BusinessRuleException("Max uses cannot be set to a value lower than the current usage count (" + entity.getUsesCount() + ")");
         }
 
         CouponEnum type = entity.getType();
         if (type == CouponEnum.PERCENT) {
             if (entity.getValue().compareTo(BigDecimal.ONE) < 0 || entity.getValue().compareTo(new BigDecimal("80")) > 0) {
-                throw new IllegalArgumentException("For percent type, value must be between 1 and 80.");
+                throw new BusinessRuleException("For percent type, value must be between 1 and 80.");
             }
         } else if (type == CouponEnum.FIXED && entity.getValue().compareTo(BigDecimal.ZERO) <= 0) {
-                throw new IllegalArgumentException("For fixed type, value must be positive.");
+                throw new BusinessRuleException("For fixed type, value must be positive.");
             }
     }
 
     private void validateTemporalRules(Coupon entity) {
         if (entity.getValidUntil().isBefore(Instant.now())) {
+            throw new BusinessRuleException("Valid until date must be in the future");
         }
         if (entity.getValidFrom().isAfter(entity.getValidUntil())) {
-            throw new IllegalArgumentException("Valid from date must be before valid until date");
+            throw new BusinessRuleException("Valid from date must be before valid until date");
         }
 
         ZonedDateTime zoned = entity.getValidFrom().atZone(ZoneOffset.UTC);
         ZonedDateTime future = zoned.plusYears(5);
         if (future.toInstant().isBefore(entity.getValidUntil())) {
-            throw new IllegalArgumentException("Valid until date must be within 5 years from valid from date");
+            throw new BusinessRuleException("Valid until date must be within 5 years from valid from date");
         }
     }
 }

@@ -3,6 +3,7 @@ package br.com.lmuniz.desafio.senai.services;
 import br.com.lmuniz.desafio.senai.domains.dtos.ProductCreateDTO;
 import br.com.lmuniz.desafio.senai.domains.entities.Product;
 import br.com.lmuniz.desafio.senai.repositories.ProductRepository;
+import br.com.lmuniz.desafio.senai.services.exceptions.ResourceConflictException;
 import br.com.lmuniz.desafio.senai.utils.Utils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,7 +23,7 @@ public class ProductService {
         final String normalizedName = Utils.normalizeName(name);
 
         if(productRepository.existsByNormalizedName(normalizedName)){
-            throw new IllegalArgumentException("Product with name '" + name + "' already exists.");
+            throw new ResourceConflictException("Product with name '" + name + "' already exists.");
         }
 
         Product entity = new Product(
