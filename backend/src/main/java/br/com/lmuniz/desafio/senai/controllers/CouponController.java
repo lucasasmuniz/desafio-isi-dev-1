@@ -46,7 +46,7 @@ public class CouponController {
         return ResponseEntity.noContent().build();
     }
 
-    @PatchMapping(value = "/{id}")
+    @PatchMapping(value = "/{id}", consumes = "application/json-patch+json")
     public ResponseEntity<CouponDetailsDTO> partialUpdateCoupon(
             @PathVariable Long id,
             @RequestBody JsonPatch patch) {

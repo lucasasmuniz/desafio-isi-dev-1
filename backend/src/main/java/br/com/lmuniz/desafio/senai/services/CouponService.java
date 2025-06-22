@@ -167,12 +167,10 @@ public class CouponService {
     }
 
     private void validateTemporalRules(Coupon entity) {
+        if (entity.getValidUntil().isBefore(Instant.now())) {
+        }
         if (entity.getValidFrom().isAfter(entity.getValidUntil())) {
             throw new IllegalArgumentException("Valid from date must be before valid until date");
-        }
-
-        if (entity.getValidUntil().isBefore(Instant.now())) {
-            throw new IllegalArgumentException("Valid until date must be in the future");
         }
 
         ZonedDateTime zoned = entity.getValidFrom().atZone(ZoneOffset.UTC);
