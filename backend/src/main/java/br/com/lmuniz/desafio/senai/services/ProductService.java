@@ -65,4 +65,11 @@ public class ProductService {
         product = productRepository.save(product);
         return new ProductDTO(product);
     }
+
+    @Transactional(readOnly = true)
+    public ProductDTO getProductById(Long id) {
+        return productRepository.findById(id)
+                .map(ProductDTO::new)
+                .orElseThrow(() -> new ResourceNotFoundException("Product with id '" + id + "' not found."));
+    }
 }
