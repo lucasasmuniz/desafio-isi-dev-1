@@ -104,12 +104,20 @@ public class CouponService {
             if (!entity.getCreatedAt().equals(patchedCoupon.getCreatedAt())) {
                 throw new BusinessRuleException("Creation date cannot be changed");
             }
+            if (!Objects.equals(entity.getUpdatedAt(), patchedCoupon.getUpdatedAt())) {
+                throw new BusinessRuleException("Update date cannot be changed manually");
+            }
+            if (!Objects.equals(entity.getDeletedAt(), patchedCoupon.getDeletedAt())) {
+                throw new BusinessRuleException("Delete date cannot be changed manually via patch");
+            }
 
         } catch (Exception e) {
             throw new BusinessRuleException(e.getMessage());
         }
 
         validateCoupon(patchedCoupon);
+
+        patchedCoupon.setUpdatedAt(Instant.now());
         Coupon couponResult = couponRepository.saveAndFlush(patchedCoupon);
 
         return new CouponDetailsDTO(couponResult);
@@ -124,9 +132,6 @@ public class CouponService {
     }
 
     private void validateRequiredFields(Coupon entity) {
-        if (entity.getCode() == null || entity.getCode().isBlank()) {
-            throw new BusinessRuleException("Code is required");
-        }
         if (entity.getType() == null) {
             throw new BusinessRuleException("Type is required");
         }

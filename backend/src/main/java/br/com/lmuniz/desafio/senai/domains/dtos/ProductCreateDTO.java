@@ -6,7 +6,6 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import jakarta.validation.constraints.*;
 
 import java.math.BigDecimal;
-import java.time.Instant;
 
 public record ProductCreateDTO(Long id,
 
