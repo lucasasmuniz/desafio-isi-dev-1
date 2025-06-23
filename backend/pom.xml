@@ -72,6 +72,40 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 			</plugin>
+			<plugin>
+				<groupId>org.jacoco</groupId>
+				<artifactId>jacoco-maven-plugin</artifactId>
+				<version>0.8.13</version>
+				<configuration>
+					<excludes>
+						<exclude>br/com/lmuniz/desafio/senai/SenaiIsiChallengeApplication.class</exclude>
+						<exclude>br/com/lmuniz/desafio/senai/serializers/**</exclude>
+						<exclude>br/com/lmuniz/desafio/senai/domains/**</exclude>
+						<exclude>br/com/lmuniz/desafio/senai/controllers/**</exclude>
+						<exclude>br/com/lmuniz/desafio/senai/controllers/exceptions/**</exclude>
+						<exclude>br/com/lmuniz/desafio/senai/services/exceptions/**</exclude>
+						<exclude>br/com/lmuniz/desafio/senai/utils/**</exclude>
+						<exclude>br/com/lmuniz/desafio/senai/repositories/**</exclude>
+					</excludes>
+				</configuration>
+				<executions>
+					<execution>
+						<goals>
+							<goal>prepare-agent</goal>
+						</goals>
+					</execution>
+					<execution>
+						<id>jacoco-report</id>
+						<phase>prepare-package</phase>
+						<goals>
+							<goal>report</goal>
+						</goals>
+						<configuration>
+							<outputDirectory>target/jacoco-report</outputDirectory>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
 		</plugins>
 	</build>
 
