@@ -43,6 +43,9 @@ public class Product {
     @OneToMany(mappedBy = "product", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     private final List<ProductCouponApplication> productCouponApplications = new ArrayList<>();
 
+    @OneToMany(mappedBy = "product", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    private final List<ProductDirectDiscountApplication> productDirectDiscountApplication = new ArrayList<>();
+
     public Product(){
     }
 
@@ -128,6 +131,10 @@ public class Product {
 
     public List<ProductCouponApplication> getProductCouponApplications() {
         return productCouponApplications;
+    }
+
+    public List<ProductDirectDiscountApplication> getProductDirectDiscountApplication() {
+        return productDirectDiscountApplication;
     }
 
     @PrePersist

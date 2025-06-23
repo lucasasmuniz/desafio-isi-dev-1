@@ -1,8 +1,6 @@
 package br.com.lmuniz.desafio.senai.controllers;
 
-import br.com.lmuniz.desafio.senai.domains.dtos.ProductDTO;
-import br.com.lmuniz.desafio.senai.domains.dtos.CouponCodeDTO;
-import br.com.lmuniz.desafio.senai.domains.dtos.ProductDiscountDTO;
+import br.com.lmuniz.desafio.senai.domains.dtos.discounts.DirectPercentageDiscountDTO;
 import br.com.lmuniz.desafio.senai.domains.dtos.products.ProductDTO;
 import br.com.lmuniz.desafio.senai.domains.dtos.coupons.CouponCodeDTO;
 import br.com.lmuniz.desafio.senai.domains.dtos.products.ProductDiscountDTO;
@@ -51,8 +49,14 @@ public class ProductController {
     }
 
     @PostMapping("/{id}/discount/coupon")
-    public ResponseEntity<ProductDiscountDTO> applyCouponDiscount(@PathVariable Long id, @RequestBody CouponCodeDTO couponCodeDTO) {
+    public ResponseEntity<ProductDiscountDTO> applyCouponDiscount(@PathVariable Long id, @Valid @RequestBody CouponCodeDTO couponCodeDTO) {
         ProductDiscountDTO result = productService.applyCouponDiscount(id, couponCodeDTO);
+        return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/{id}/discount/percent")
+    public ResponseEntity<ProductDiscountDTO> applyDirectPercentDiscount(@PathVariable Long id, @Valid @RequestBody DirectPercentageDiscountDTO directPercentageDiscountDTO) {
+        ProductDiscountDTO result = productService.applyDirectPercentDiscount(id, directPercentageDiscountDTO);
         return ResponseEntity.ok(result);
     }
 }

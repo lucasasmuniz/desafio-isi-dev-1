@@ -1,26 +1,24 @@
 package br.com.lmuniz.desafio.senai.services;
 
-import br.com.lmuniz.desafio.senai.domains.dtos.CouponCodeDTO;
-import br.com.lmuniz.desafio.senai.domains.dtos.DiscountDTO;
-import br.com.lmuniz.desafio.senai.domains.dtos.ProductDTO;
-import br.com.lmuniz.desafio.senai.domains.dtos.ProductDiscountDTO;
 import br.com.lmuniz.desafio.senai.domains.dtos.coupons.CouponCodeDTO;
+import br.com.lmuniz.desafio.senai.domains.dtos.discounts.DirectPercentageDiscountDTO;
 import br.com.lmuniz.desafio.senai.domains.dtos.discounts.DiscountDTO;
 import br.com.lmuniz.desafio.senai.domains.dtos.products.ProductDTO;
 import br.com.lmuniz.desafio.senai.domains.dtos.products.ProductDiscountDTO;
 import br.com.lmuniz.desafio.senai.domains.entities.Coupon;
 import br.com.lmuniz.desafio.senai.domains.entities.Product;
 import br.com.lmuniz.desafio.senai.domains.entities.ProductCouponApplication;
+import br.com.lmuniz.desafio.senai.domains.entities.ProductDirectDiscountApplication;
 import br.com.lmuniz.desafio.senai.domains.enums.CouponEnum;
 import br.com.lmuniz.desafio.senai.repositories.CouponRepository;
 import br.com.lmuniz.desafio.senai.repositories.ProductCouponApplicationRepository;
+import br.com.lmuniz.desafio.senai.repositories.ProductDirectDiscountApplicationRepository;
 import br.com.lmuniz.desafio.senai.repositories.ProductRepository;
 import br.com.lmuniz.desafio.senai.services.exceptions.BusinessRuleException;
 import br.com.lmuniz.desafio.senai.services.exceptions.InvalidPriceException;
 import br.com.lmuniz.desafio.senai.services.exceptions.ResourceConflictException;
 import br.com.lmuniz.desafio.senai.services.exceptions.ResourceNotFoundException;
 import br.com.lmuniz.desafio.senai.utils.Utils;
-import jakarta.validation.Valid;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,11 +32,13 @@ public class ProductService {
     private final ProductRepository productRepository;
     private final CouponRepository couponRepository;
     private final ProductCouponApplicationRepository productCouponApplicationRepository;
+    private final ProductDirectDiscountApplicationRepository productDirectDiscountApplicationRepository;
 
-    public ProductService(ProductRepository productRepository, CouponRepository couponRepository, ProductCouponApplicationRepository productCouponApplicationRepository) {
+    public ProductService(ProductRepository productRepository, CouponRepository couponRepository, ProductCouponApplicationRepository productCouponApplicationRepository, ProductDirectDiscountApplicationRepository productDirectDiscountApplicationRepository) {
         this.productRepository = productRepository;
         this.couponRepository = couponRepository;
         this.productCouponApplicationRepository = productCouponApplicationRepository;
+        this.productDirectDiscountApplicationRepository = productDirectDiscountApplicationRepository;
     }
 
     @Transactional
@@ -116,7 +116,7 @@ public class ProductService {
         productCouponApplication.setProduct(product);
         productCouponApplication.setCoupon(coupon);
         productCouponApplication.setAppliedAt(Instant.now());
-        productCouponApplicationRepository.save(productCouponApplication);
+        productCouponApplication = productCouponApplicationRepository.save(productCouponApplication);
 
         coupon.setUsesCount(coupon.getUsesCount() + 1);
         couponRepository.save(coupon);
@@ -125,6 +125,35 @@ public class ProductService {
         return new ProductDiscountDTO(product, finalPrice, discountDTO, true);
     }
 
+    @Transactional
+    public ProductDiscountDTO applyDirectPercentDiscount(Long id, DirectPercentageDiscountDTO directPercentageDiscountDTO) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Product with id '" + id + "' not found."));
+
+        validateProduct(product);
+
+        BigDecimal discountFraction = directPercentageDiscountDTO.percentage().divide(BigDecimal.valueOf(100));
+        BigDecimal discountFactor = BigDecimal.ONE.subtract(discountFraction);
+        BigDecimal finalPrice = product.getPrice().multiply(discountFactor).setScale(2, RoundingMode.HALF_UP);
+
+        if (finalPrice.compareTo(new BigDecimal("0.01")) < 0) {
+            throw new InvalidPriceException("Final price after applying discount cannot be less than 0.01");
+        }
+
+        ProductDirectDiscountApplication directDiscountApplication = new ProductDirectDiscountApplication();
+        directDiscountApplication.setProduct(product);
+        directDiscountApplication.setDiscountPercentage(directPercentageDiscountDTO.percentage());
+        directDiscountApplication.setAppliedAt(Instant.now());
+        directDiscountApplication = productDirectDiscountApplicationRepository.save(directDiscountApplication);
+
+        DiscountDTO discountDTO = new DiscountDTO(
+                CouponEnum.PERCENT.getTypeValue(),
+                directPercentageDiscountDTO.percentage(),
+                directDiscountApplication.getAppliedAt()
+        );
+
+        return new ProductDiscountDTO(product, finalPrice, discountDTO, false);
+    }
     private BigDecimal calculateFinalPrice(Product product, Coupon coupon) {
         if (coupon.getType() == CouponEnum.PERCENT) {
             BigDecimal discountFactor = BigDecimal.ONE.subtract(coupon.getValue().divide(BigDecimal.valueOf(100)));
@@ -141,6 +170,10 @@ public class ProductService {
 
         if (productCouponApplicationRepository.existsByProductIdAndRemovedAtIsNull(product.getId())) {
             throw new ResourceConflictException("Coupon is already applied to this product.");
+        }
+
+        if (productDirectDiscountApplicationRepository.existsByProductIdAndRemovedAtIsNull(product.getId())){
+            throw new ResourceConflictException("Direct discount is already applied to this product.");
         }
     }
 
