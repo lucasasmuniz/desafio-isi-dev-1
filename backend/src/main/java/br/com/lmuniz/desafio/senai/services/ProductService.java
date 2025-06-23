@@ -14,10 +14,7 @@ import br.com.lmuniz.desafio.senai.repositories.CouponRepository;
 import br.com.lmuniz.desafio.senai.repositories.ProductCouponApplicationRepository;
 import br.com.lmuniz.desafio.senai.repositories.ProductDirectDiscountApplicationRepository;
 import br.com.lmuniz.desafio.senai.repositories.ProductRepository;
-import br.com.lmuniz.desafio.senai.services.exceptions.BusinessRuleException;
-import br.com.lmuniz.desafio.senai.services.exceptions.InvalidPriceException;
-import br.com.lmuniz.desafio.senai.services.exceptions.ResourceConflictException;
-import br.com.lmuniz.desafio.senai.services.exceptions.ResourceNotFoundException;
+import br.com.lmuniz.desafio.senai.services.exceptions.*;
 import br.com.lmuniz.desafio.senai.utils.Utils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -154,6 +151,39 @@ public class ProductService {
 
         return new ProductDiscountDTO(product, finalPrice, discountDTO, false);
     }
+
+    @Transactional
+    public void removeDiscount(Long id) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Product with id '" + id + "' not found."));
+
+        ProductCouponApplication productCouponApplication = productCouponApplicationRepository.findByProductIdAndRemovedAtIsNull(product.getId());
+        if (productCouponApplication != null) {
+            Coupon coupon = productCouponApplication.getCoupon();
+            if (coupon.getUsesCount() <= 0) {
+                throw new DatabaseException(
+                        "Data integrity error: Cannot decrement usage count for coupon '" + coupon.getCode() +
+                                "'. Current count is " + coupon.getUsesCount() + "."
+                );
+            }
+            coupon.setUsesCount(coupon.getUsesCount() - 1);
+            couponRepository.save(coupon);
+
+            productCouponApplication.setRemovedAt(Instant.now());
+            productCouponApplicationRepository.save(productCouponApplication);
+            return;
+        }
+
+        ProductDirectDiscountApplication productDirectDiscountApplication = productDirectDiscountApplicationRepository.findByProductIdAndRemovedAtIsNull(product.getId());
+        if (productDirectDiscountApplication != null) {
+            productDirectDiscountApplication.setRemovedAt(Instant.now());
+            productDirectDiscountApplicationRepository.save(productDirectDiscountApplication);
+            return;
+        }
+
+        throw new BusinessRuleException("Product has no active discounts to remove.");
+    }
+
     private BigDecimal calculateFinalPrice(Product product, Coupon coupon) {
         if (coupon.getType() == CouponEnum.PERCENT) {
             BigDecimal discountFactor = BigDecimal.ONE.subtract(coupon.getValue().divide(BigDecimal.valueOf(100)));
@@ -168,11 +198,11 @@ public class ProductService {
             throw new BusinessRuleException("Product is deleted and cannot have a coupon applied.");
         }
 
-        if (productCouponApplicationRepository.existsByProductIdAndRemovedAtIsNull(product.getId())) {
+        if (productCouponApplicationRepository.findByProductIdAndRemovedAtIsNull(product.getId()) != null) {
             throw new ResourceConflictException("Coupon is already applied to this product.");
         }
 
-        if (productDirectDiscountApplicationRepository.existsByProductIdAndRemovedAtIsNull(product.getId())){
+        if (productDirectDiscountApplicationRepository.findByProductIdAndRemovedAtIsNull(product.getId()) != null){
             throw new ResourceConflictException("Direct discount is already applied to this product.");
         }
     }

@@ -3,10 +3,7 @@ package br.com.lmuniz.desafio.senai.controllers.exceptions.handlers;
 import br.com.lmuniz.desafio.senai.controllers.exceptions.FieldMessage;
 import br.com.lmuniz.desafio.senai.controllers.exceptions.StandardException;
 import br.com.lmuniz.desafio.senai.controllers.exceptions.ValidationException;
-import br.com.lmuniz.desafio.senai.services.exceptions.BusinessRuleException;
-import br.com.lmuniz.desafio.senai.services.exceptions.InvalidPriceException;
-import br.com.lmuniz.desafio.senai.services.exceptions.ResourceConflictException;
-import br.com.lmuniz.desafio.senai.services.exceptions.ResourceNotFoundException;
+import br.com.lmuniz.desafio.senai.services.exceptions.*;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -63,6 +60,18 @@ public class ExceptionControllerHandler {
         error.setTimestamp(Instant.now());
         error.setStatus(status.value());
         error.setError("Invalid price exception");
+        error.setMessage(e.getMessage());
+        error.setPath(request.getRequestURI());
+        return ResponseEntity.status(status).body(error);
+    }
+
+    @ExceptionHandler(DatabaseException.class)
+    public ResponseEntity<StandardException> DatabaseException(DatabaseException e, HttpServletRequest request) {
+        StandardException error = new StandardException();
+        HttpStatus status = HttpStatus.INTERNAL_SERVER_ERROR;
+        error.setTimestamp(Instant.now());
+        error.setStatus(status.value());
+        error.setError("An internal data consistency error occurred.");
         error.setMessage(e.getMessage());
         error.setPath(request.getRequestURI());
         return ResponseEntity.status(status).body(error);

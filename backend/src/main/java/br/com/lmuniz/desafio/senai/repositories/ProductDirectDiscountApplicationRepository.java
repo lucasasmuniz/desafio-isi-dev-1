@@ -5,5 +5,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface ProductDirectDiscountApplicationRepository extends JpaRepository<ProductDirectDiscountApplication, Long> {
 
-    boolean existsByProductIdAndRemovedAtIsNull(Long productId);
+    ProductDirectDiscountApplication findByProductIdAndRemovedAtIsNull(Long productId);
 }

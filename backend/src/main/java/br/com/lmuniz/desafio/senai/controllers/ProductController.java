@@ -59,4 +59,10 @@ public class ProductController {
         ProductDiscountDTO result = productService.applyDirectPercentDiscount(id, directPercentageDiscountDTO);
         return ResponseEntity.ok(result);
     }
+
+    @DeleteMapping("/{id}/discount")
+    public ResponseEntity<Void> removeDiscount(@PathVariable Long id) {
+        productService.removeDiscount(id);
+        return ResponseEntity.noContent().build();
+    }
 }

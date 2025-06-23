@@ -7,5 +7,5 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface ProductCouponApplicationRepository extends JpaRepository<ProductCouponApplication, Long> {
 
-    boolean existsByProductIdAndRemovedAtIsNull(Long productId);
+    ProductCouponApplication findByProductIdAndRemovedAtIsNull(Long productId);
 }
