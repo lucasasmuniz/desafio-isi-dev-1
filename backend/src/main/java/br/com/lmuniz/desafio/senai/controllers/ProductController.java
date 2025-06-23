@@ -1,6 +1,8 @@
 package br.com.lmuniz.desafio.senai.controllers;
 
 import br.com.lmuniz.desafio.senai.domains.dtos.ProductDTO;
+import br.com.lmuniz.desafio.senai.domains.dtos.CouponCodeDTO;
+import br.com.lmuniz.desafio.senai.domains.dtos.ProductDiscountDTO;
 import br.com.lmuniz.desafio.senai.services.ProductService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -43,5 +45,11 @@ public class ProductController {
     public ResponseEntity<ProductDTO> getProductById(@PathVariable Long id) {
         ProductDTO productDTO = productService.getProductById(id);
         return ResponseEntity.ok(productDTO);
+    }
+
+    @PostMapping("/{id}/discount/coupon")
+    public ResponseEntity<ProductDiscountDTO> applyCouponDiscount(@PathVariable Long id, @RequestBody CouponCodeDTO couponCodeDTO) {
+        ProductDiscountDTO result = productService.applyCouponDiscount(id, couponCodeDTO);
+        return ResponseEntity.ok(result);
     }
 }

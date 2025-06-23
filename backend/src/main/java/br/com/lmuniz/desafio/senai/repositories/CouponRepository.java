@@ -18,4 +18,5 @@ public interface CouponRepository extends JpaRepository<Coupon, Long> {
     List<Coupon> searchValidCoupons(@Param("now") Instant now);
 
     Optional<Coupon> findByCodeAndIdNot(String code, Long id);
+    Coupon findByCode(String code);
 }
