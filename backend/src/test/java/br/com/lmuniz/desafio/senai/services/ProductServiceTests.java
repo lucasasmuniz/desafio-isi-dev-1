@@ -1,6 +1,6 @@
 package br.com.lmuniz.desafio.senai.services;
 
-import br.com.lmuniz.desafio.senai.domains.dtos.ProductCreateDTO;
+import br.com.lmuniz.desafio.senai.domains.dtos.ProductDTO;
 import br.com.lmuniz.desafio.senai.domains.entities.Product;
 import br.com.lmuniz.desafio.senai.repositories.ProductRepository;
 import br.com.lmuniz.desafio.senai.services.exceptions.ResourceConflictException;
@@ -44,8 +44,8 @@ public class ProductServiceTests {
     @Test
     @DisplayName("create product should throw ResourceNotFoundException when normalized name does not exist and valid data")
     void createProductShouldCreateProductWhenNonExistingNormalizedNameAndValidData() {
-        ProductCreateDTO dto = new ProductCreateDTO(1L, nonExistingNormalizedName,product.getDescription(), product.getStock(), product.getPrice());
-        ProductCreateDTO result = productService.createProduct(dto);
+        ProductDTO dto = new ProductDTO(1L, nonExistingNormalizedName,product.getDescription(), product.getStock(), product.getPrice());
+        ProductDTO result = productService.createProduct(dto);
 
         assertNotNull(result);
         assertNotNull(result.id());
@@ -58,7 +58,7 @@ public class ProductServiceTests {
     @Test
     @DisplayName("create product should throw ResourceNotFoundException when existing normalized name")
     void createProductShouldThrowResourceConflictExceptionWhenExistingNormalizedName() {
-        ProductCreateDTO dto = new ProductCreateDTO(1L, existingNormalizedName,product.getDescription(), product.getStock(), product.getPrice());
+        ProductDTO dto = new ProductDTO(1L, existingNormalizedName,product.getDescription(), product.getStock(), product.getPrice());
         assertThrows(ResourceConflictException.class, () -> {
             productService.createProduct(dto);
         });

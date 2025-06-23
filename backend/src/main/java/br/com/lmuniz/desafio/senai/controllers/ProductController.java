@@ -1,6 +1,6 @@
 package br.com.lmuniz.desafio.senai.controllers;
 
-import br.com.lmuniz.desafio.senai.domains.dtos.ProductCreateDTO;
+import br.com.lmuniz.desafio.senai.domains.dtos.ProductDTO;
 import br.com.lmuniz.desafio.senai.services.ProductService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -20,11 +20,11 @@ public class ProductController {
     }
 
     @PostMapping
-    public ResponseEntity<ProductCreateDTO> createProduct(@Valid @RequestBody ProductCreateDTO productCreateDTO) {
-        productCreateDTO = productService.createProduct(productCreateDTO);
+    public ResponseEntity<ProductDTO> createProduct(@Valid @RequestBody ProductDTO productDTO) {
+        productDTO = productService.createProduct(productDTO);
         URI uri = ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}")
-                .buildAndExpand(productCreateDTO.id()).toUri();
-        return ResponseEntity.created(uri).body(productCreateDTO);
+                .buildAndExpand(productDTO.id()).toUri();
+        return ResponseEntity.created(uri).body(productDTO);
     }
 
     @DeleteMapping("{id}")

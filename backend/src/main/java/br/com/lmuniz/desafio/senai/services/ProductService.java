@@ -1,6 +1,6 @@
 package br.com.lmuniz.desafio.senai.services;
 
-import br.com.lmuniz.desafio.senai.domains.dtos.ProductCreateDTO;
+import br.com.lmuniz.desafio.senai.domains.dtos.ProductDTO;
 import br.com.lmuniz.desafio.senai.domains.entities.Product;
 import br.com.lmuniz.desafio.senai.repositories.ProductRepository;
 import br.com.lmuniz.desafio.senai.services.exceptions.ResourceConflictException;
@@ -21,7 +21,7 @@ public class ProductService {
     }
 
     @Transactional
-    public ProductCreateDTO createProduct(ProductCreateDTO dto){
+    public ProductDTO createProduct(ProductDTO dto){
         final String name = dto.name().trim().replaceAll("\\s+", " ");
         final String normalizedName = Utils.normalizeName(name);
 
@@ -37,7 +37,7 @@ public class ProductService {
                 dto.stock()
         );
         entity = productRepository.save(entity);
-        return new ProductCreateDTO(entity);
+        return new ProductDTO(entity);
     }
 
     @Transactional
