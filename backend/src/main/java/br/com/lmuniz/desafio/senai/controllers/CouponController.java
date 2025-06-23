@@ -1,7 +1,7 @@
 package br.com.lmuniz.desafio.senai.controllers;
 
-import br.com.lmuniz.desafio.senai.domains.dtos.CouponDTO;
-import br.com.lmuniz.desafio.senai.domains.dtos.CouponDetailsDTO;
+import br.com.lmuniz.desafio.senai.domains.dtos.coupons.CouponDTO;
+import br.com.lmuniz.desafio.senai.domains.dtos.coupons.CouponDetailsDTO;
 import br.com.lmuniz.desafio.senai.services.CouponService;
 import com.github.fge.jsonpatch.JsonPatch;
 import jakarta.validation.Valid;

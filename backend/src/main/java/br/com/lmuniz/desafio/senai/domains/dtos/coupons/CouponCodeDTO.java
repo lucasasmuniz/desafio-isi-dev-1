@@ -1,4 +1,4 @@
-package br.com.lmuniz.desafio.senai.domains.dtos;
+package br.com.lmuniz.desafio.senai.domains.dtos.coupons;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;

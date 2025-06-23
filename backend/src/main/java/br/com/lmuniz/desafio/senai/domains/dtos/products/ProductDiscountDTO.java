@@ -1,5 +1,6 @@
-package br.com.lmuniz.desafio.senai.domains.dtos;
+package br.com.lmuniz.desafio.senai.domains.dtos.products;
 
+import br.com.lmuniz.desafio.senai.domains.dtos.discounts.DiscountDTO;
 import br.com.lmuniz.desafio.senai.domains.entities.Product;
 
 import java.math.BigDecimal;

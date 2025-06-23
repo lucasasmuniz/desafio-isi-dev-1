@@ -4,6 +4,10 @@ import br.com.lmuniz.desafio.senai.domains.dtos.CouponCodeDTO;
 import br.com.lmuniz.desafio.senai.domains.dtos.DiscountDTO;
 import br.com.lmuniz.desafio.senai.domains.dtos.ProductDTO;
 import br.com.lmuniz.desafio.senai.domains.dtos.ProductDiscountDTO;
+import br.com.lmuniz.desafio.senai.domains.dtos.coupons.CouponCodeDTO;
+import br.com.lmuniz.desafio.senai.domains.dtos.discounts.DiscountDTO;
+import br.com.lmuniz.desafio.senai.domains.dtos.products.ProductDTO;
+import br.com.lmuniz.desafio.senai.domains.dtos.products.ProductDiscountDTO;
 import br.com.lmuniz.desafio.senai.domains.entities.Coupon;
 import br.com.lmuniz.desafio.senai.domains.entities.Product;
 import br.com.lmuniz.desafio.senai.domains.entities.ProductCouponApplication;
@@ -16,6 +20,7 @@ import br.com.lmuniz.desafio.senai.services.exceptions.InvalidPriceException;
 import br.com.lmuniz.desafio.senai.services.exceptions.ResourceConflictException;
 import br.com.lmuniz.desafio.senai.services.exceptions.ResourceNotFoundException;
 import br.com.lmuniz.desafio.senai.utils.Utils;
+import jakarta.validation.Valid;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

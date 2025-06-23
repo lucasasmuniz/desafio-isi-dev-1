@@ -1,4 +1,4 @@
-package br.com.lmuniz.desafio.senai.domains.dtos;
+package br.com.lmuniz.desafio.senai.domains.dtos.discounts;
 
 import br.com.lmuniz.desafio.senai.domains.entities.Coupon;
 import br.com.lmuniz.desafio.senai.domains.entities.ProductCouponApplication;

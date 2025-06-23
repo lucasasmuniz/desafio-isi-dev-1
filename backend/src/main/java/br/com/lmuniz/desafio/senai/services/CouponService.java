@@ -1,7 +1,7 @@
 package br.com.lmuniz.desafio.senai.services;
 
-import br.com.lmuniz.desafio.senai.domains.dtos.CouponDTO;
-import br.com.lmuniz.desafio.senai.domains.dtos.CouponDetailsDTO;
+import br.com.lmuniz.desafio.senai.domains.dtos.coupons.CouponDTO;
+import br.com.lmuniz.desafio.senai.domains.dtos.coupons.CouponDetailsDTO;
 import br.com.lmuniz.desafio.senai.domains.entities.Coupon;
 import br.com.lmuniz.desafio.senai.domains.enums.CouponEnum;
 import br.com.lmuniz.desafio.senai.repositories.CouponRepository;
