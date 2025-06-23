@@ -164,6 +164,10 @@ public class CouponService {
             throw new BusinessRuleException("Max uses cannot be set to a value lower than the current usage count (" + entity.getUsesCount() + ")");
         }
 
+        if(entity.getOneShot() && entity.getUsesCount() > 0) {
+            throw new BusinessRuleException("One-shot coupons cannot have a usage count greater than zero");
+        }
+
         CouponEnum type = entity.getType();
         if (type == CouponEnum.PERCENT) {
             if (entity.getValue().compareTo(BigDecimal.ONE) < 0 || entity.getValue().compareTo(new BigDecimal("80")) > 0) {
