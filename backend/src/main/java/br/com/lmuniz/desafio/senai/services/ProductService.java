@@ -3,6 +3,7 @@ package br.com.lmuniz.desafio.senai.services;
 import br.com.lmuniz.desafio.senai.domains.dtos.ProductDTO;
 import br.com.lmuniz.desafio.senai.domains.entities.Product;
 import br.com.lmuniz.desafio.senai.repositories.ProductRepository;
+import br.com.lmuniz.desafio.senai.services.exceptions.BusinessRuleException;
 import br.com.lmuniz.desafio.senai.services.exceptions.ResourceConflictException;
 import br.com.lmuniz.desafio.senai.services.exceptions.ResourceNotFoundException;
 import br.com.lmuniz.desafio.senai.utils.Utils;
@@ -46,6 +47,22 @@ public class ProductService {
                 .orElseThrow(() -> new ResourceNotFoundException("Product with id '" + id + "' not found."));
 
         product.setDeletedAt(Instant.now());
+        product.setUpdatedAt(Instant.now());
         productRepository.save(product);
+    }
+
+    @Transactional
+    public ProductDTO restoreProduct(Long id) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Product with id '" + id + "' not found."));
+
+        if (product.getDeletedAt() == null) {
+            throw new BusinessRuleException("Product is already active and cannot be restored.");
+        }
+
+        product.setDeletedAt(null);
+        product.setUpdatedAt(Instant.now());
+        product = productRepository.save(product);
+        return new ProductDTO(product);
     }
 }

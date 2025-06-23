@@ -32,4 +32,10 @@ public class ProductController {
         productService.softDeleteProduct(id);
         return ResponseEntity.noContent().build();
     }
+
+    @PostMapping("/{id}/restore")
+    public ResponseEntity<ProductDTO> restoreProduct(@PathVariable Long id) {
+        ProductDTO dtoproduct = productService.restoreProduct(id);
+        return ResponseEntity.ok(dtoproduct);
+    }
 }
