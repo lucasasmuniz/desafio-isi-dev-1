@@ -19,14 +19,17 @@ public class PriceDeserializer extends JsonDeserializer<BigDecimal> {
         if (node.isNumber()) {
             return node.decimalValue();
         }
-
-        if (node.isTextual()) {
-            priceString = priceString.replaceAll("\\.", "");
-            priceString = priceString.replaceAll(",", ".");
-            try {
+        if (node.isTextual()){
+            if (priceString.contains(",")) {
+                priceString = priceString.replaceAll("\\.", "");
+                priceString = priceString.replaceAll(",", ".");
+                try {
+                    return new BigDecimal(priceString);
+                } catch (NumberFormatException e) {
+                    throw new IOException("Invalid price format: " + node.asText(), e);
+                }
+            } else {
                 return new BigDecimal(priceString);
-            } catch (NumberFormatException e) {
-                throw new IOException("Invalid price format: " + node.asText(), e);
             }
         }
 
