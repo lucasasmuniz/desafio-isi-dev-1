@@ -8,7 +8,7 @@ import iconLogOut from '../../assets/log-out.svg';
 import NavItem from '../NavItem';
 
 
-export default function SideBar() {
+export default function Sidebar() {
     return (
         <aside className="sidebar">
             <div className="sidebar-logo">

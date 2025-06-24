@@ -1,11 +1,14 @@
-import Catalog from './routes/Product/Catalog'
+import { Route, Routes } from 'react-router-dom'
+import Layout from './routes'
 
 function App() {
 
   return (
-    <div>
-      <Catalog />
-    </div>
+    <Routes>
+      <Route path="/" element={<Layout />}></Route>
+
+      <Route path="*" element={<h1>Página não encontrada</h1>} />
+    </Routes>
   )
 }
 
