@@ -7,10 +7,13 @@ import br.com.lmuniz.desafio.senai.domains.dtos.products.ProductDiscountDTO;
 import br.com.lmuniz.desafio.senai.services.ProductService;
 import com.github.fge.jsonpatch.JsonPatch;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import java.math.BigDecimal;
 import java.net.URI;
 
 @RestController
@@ -71,5 +74,19 @@ public class ProductController {
             @PathVariable Long id,
             @RequestBody JsonPatch patch) {
         return ResponseEntity.ok(productService.partialUpdateProduct(id, patch));
+    }
+
+    @GetMapping
+    public ResponseEntity<Page<ProductDiscountDTO>> getAllProducts(Pageable pageable,
+                               @RequestParam(name = "search", required = false) String search,
+                               @RequestParam(name = "minPrice", required = false) BigDecimal minPrice,
+                               @RequestParam(name = "maxPrice", required = false) BigDecimal maxPrice,
+                               @RequestParam(name = "hasDiscount", required = false) Boolean hasDiscount,
+                               @RequestParam(name = "includeDeleted", required = false, defaultValue = "false") Boolean includeDeleted,
+                               @RequestParam(name = "onlyOutOfStock", required = false) Boolean onlyOutOfStock,
+                               @RequestParam(name = "withCouponApplied", required = false) Boolean withCouponApplied) {
+
+        return ResponseEntity.ok(productService.getAllProducts(pageable, search, minPrice, maxPrice, hasDiscount, includeDeleted, onlyOutOfStock, withCouponApplied));
+
     }
 }

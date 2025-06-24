@@ -14,6 +14,7 @@ import br.com.lmuniz.desafio.senai.repositories.CouponRepository;
 import br.com.lmuniz.desafio.senai.repositories.ProductCouponApplicationRepository;
 import br.com.lmuniz.desafio.senai.repositories.ProductDirectDiscountApplicationRepository;
 import br.com.lmuniz.desafio.senai.repositories.ProductRepository;
+import br.com.lmuniz.desafio.senai.repositories.specifications.ProductSpecification;
 import br.com.lmuniz.desafio.senai.services.exceptions.*;
 import br.com.lmuniz.desafio.senai.utils.Utils;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -21,13 +22,21 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.fge.jsonpatch.JsonPatch;
 import com.github.fge.jsonpatch.JsonPatchException;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
-import java.util.Objects;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class ProductService {
@@ -321,5 +330,89 @@ public class ProductService {
         if (coupon.getValidFrom().compareTo(currentTime) > 0 || coupon.getValidUntil().compareTo(currentTime) < 0) {
             throw new BusinessRuleException("Coupon is not valid for the current date.");
         }
+    }
+
+    @Transactional(readOnly = true)
+    public Page<ProductDiscountDTO> getAllProducts(
+            Pageable pageable, String search, BigDecimal minPrice, BigDecimal maxPrice,
+            Boolean hasDiscount, Boolean includeDeleted, Boolean onlyOutOfStock, Boolean withCouponApplied) {
+
+        List<Specification<Product>> specs = new ArrayList<>();
+
+        if (includeDeleted == null || !includeDeleted) {
+            specs.add(ProductSpecification.isActive());
+        }
+
+        if (search != null && !search.trim().isEmpty()) {
+            specs.add(ProductSpecification.nameOrDescriptionLike(search));
+        }
+        if (minPrice != null) {
+            specs.add(ProductSpecification.priceGreaterThanOrEqual(minPrice));
+        }
+        if (maxPrice != null) {
+            specs.add(ProductSpecification.priceLessThanOrEqual(maxPrice));
+        }
+        if (onlyOutOfStock != null && onlyOutOfStock) {
+            specs.add(ProductSpecification.isOutOfStock());
+        }
+
+        Specification<Product> finalSpec = specs.stream()
+                .reduce(Specification::and)
+                .orElse(null);
+
+        Page<Product> productPage = productRepository.findAll(finalSpec, pageable);
+
+        return convertToPageProductDiscountDTO(productPage, withCouponApplied, hasDiscount, pageable);
+    }
+
+
+    private Page<ProductDiscountDTO> convertToPageProductDiscountDTO(Page<Product> productPage,Boolean withCouponApplied, Boolean hasDiscount, Pageable pageable) {
+        List<Long> productIds = productPage.getContent().stream()
+                .map(Product::getId)
+                .toList();
+
+        if (productIds.isEmpty()) {
+            return Page.empty(pageable);
+        }
+
+        List<ProductCouponApplication> couponApps = productCouponApplicationRepository.findAllByProductIdInAndRemovedAtIsNull(productIds);
+        List<ProductDirectDiscountApplication> directApps = productDirectDiscountApplicationRepository.findAllByProductIdInAndRemovedAtIsNull(productIds);
+
+        Map<Long, ProductCouponApplication> couponAppMap = couponApps.stream()
+                .collect(Collectors.toMap(app -> app.getProduct().getId(), app -> app));
+        Map<Long, ProductDirectDiscountApplication> directAppMap = directApps.stream()
+                .collect(Collectors.toMap(app -> app.getProduct().getId(), app -> app));
+
+        Page<ProductDiscountDTO> dtoPage = productPage.map(product -> {
+            ProductCouponApplication couponApp = couponAppMap.get(product.getId());
+            ProductDirectDiscountApplication directApp = directAppMap.get(product.getId());
+
+            if (couponApp != null) {
+                BigDecimal finalPrice = calculateFinalPrice(product, couponApp.getCoupon());
+                DiscountDTO discountDTO = new DiscountDTO(couponApp.getCoupon(), couponApp);
+                return new ProductDiscountDTO(product, finalPrice, discountDTO, true);
+            } else if (directApp != null) {
+                BigDecimal discountFraction = directApp.getDiscountPercentage().divide(new BigDecimal("100"));
+                BigDecimal finalPrice = product.getPrice().multiply(BigDecimal.ONE.subtract(discountFraction)).setScale(2, RoundingMode.DOWN);
+                DiscountDTO discountDTO = new DiscountDTO(CouponEnum.PERCENT.getTypeValue(), directApp.getDiscountPercentage(), directApp.getAppliedAt());
+                return new ProductDiscountDTO(product, finalPrice, discountDTO, false);
+            } else {
+                return new ProductDiscountDTO(product, product.getPrice(), null, false);
+            }
+        });
+
+        List<ProductDiscountDTO> filteredList = dtoPage.getContent();
+        if (hasDiscount != null) {
+            filteredList = filteredList.stream()
+                    .filter(p -> hasDiscount.equals(p.discount() != null))
+                    .toList();
+        }
+        if (withCouponApplied != null && withCouponApplied) {
+            filteredList = filteredList.stream()
+                    .filter(ProductDiscountDTO::hasCouponApplied)
+                    .toList();
+        }
+
+        return new PageImpl<>(filteredList, pageable, productPage.getTotalElements());
     }
 }
