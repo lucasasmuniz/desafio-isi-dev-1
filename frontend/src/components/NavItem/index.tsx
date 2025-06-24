@@ -6,8 +6,7 @@ interface NavItemProps {
   active?: boolean;
 }
 
-const NavItem: React.FC<NavItemProps> = ({ icon, text, active = false }) => {
-  
+export default function NavItem({icon, text, active}: NavItemProps)   {
   const activeClass = active ? 'nav-item-active' : '';
 
   return (
@@ -17,5 +16,3 @@ const NavItem: React.FC<NavItemProps> = ({ icon, text, active = false }) => {
     </a>
   );
 };
-
-export default NavItem;

@@ -41,3 +41,14 @@ a,a:hover{
 .main-content-wrapper {
   margin-left: 216px;
 }
+
+.page-content{
+  padding: 35px 50px;
+  height: 100%;
+}
+
+.main-container{
+    width: 100%;
+    min-width: 970px;
+    margin: 0 auto;
+}
