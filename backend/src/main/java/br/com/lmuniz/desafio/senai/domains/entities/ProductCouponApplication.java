@@ -1,5 +1,6 @@
 package br.com.lmuniz.desafio.senai.domains.entities;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 
 import java.time.Instant;
@@ -13,10 +14,12 @@ public class ProductCouponApplication {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @JsonBackReference("product-coupon_application")
     @ManyToOne()
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
 
+    @JsonBackReference("coupon-application")
     @ManyToOne()
     @JoinColumn(name = "coupon_id", nullable = false)
     private Coupon coupon;

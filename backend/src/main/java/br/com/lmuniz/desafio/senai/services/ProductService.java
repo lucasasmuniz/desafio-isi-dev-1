@@ -16,12 +16,18 @@ import br.com.lmuniz.desafio.senai.repositories.ProductDirectDiscountApplication
 import br.com.lmuniz.desafio.senai.repositories.ProductRepository;
 import br.com.lmuniz.desafio.senai.services.exceptions.*;
 import br.com.lmuniz.desafio.senai.utils.Utils;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.fge.jsonpatch.JsonPatch;
+import com.github.fge.jsonpatch.JsonPatchException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
+import java.util.Objects;
 
 @Service
 public class ProductService {
@@ -30,12 +36,14 @@ public class ProductService {
     private final CouponRepository couponRepository;
     private final ProductCouponApplicationRepository productCouponApplicationRepository;
     private final ProductDirectDiscountApplicationRepository productDirectDiscountApplicationRepository;
+    private final ObjectMapper objectMapper;
 
-    public ProductService(ProductRepository productRepository, CouponRepository couponRepository, ProductCouponApplicationRepository productCouponApplicationRepository, ProductDirectDiscountApplicationRepository productDirectDiscountApplicationRepository) {
+    public ProductService(ProductRepository productRepository, CouponRepository couponRepository, ProductCouponApplicationRepository productCouponApplicationRepository, ProductDirectDiscountApplicationRepository productDirectDiscountApplicationRepository, ObjectMapper objectMapper) {
         this.productRepository = productRepository;
         this.couponRepository = couponRepository;
         this.productCouponApplicationRepository = productCouponApplicationRepository;
         this.productDirectDiscountApplicationRepository = productDirectDiscountApplicationRepository;
+        this.objectMapper = objectMapper;
     }
 
     @Transactional
@@ -63,9 +71,18 @@ public class ProductService {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product with id '" + id + "' not found."));
 
+        hasDiscountCheck(product);
+
         product.setDeletedAt(Instant.now());
         product.setUpdatedAt(Instant.now());
         productRepository.save(product);
+    }
+
+    private void hasDiscountCheck(Product product) {
+        if(productCouponApplicationRepository.findByProductIdAndRemovedAtIsNull(product.getId()) != null ||
+                productDirectDiscountApplicationRepository.findByProductIdAndRemovedAtIsNull(product.getId()) != null) {
+            this.removeDiscount(product.getId());
+        }
     }
 
     @Transactional
@@ -101,7 +118,7 @@ public class ProductService {
 
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product with id '" + id + "' not found."));
-        validateProduct(product);
+        validateProductAvailableDiscount(product);
 
         BigDecimal finalPrice = calculateFinalPrice(product, coupon);
 
@@ -127,7 +144,7 @@ public class ProductService {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product with id '" + id + "' not found."));
 
-        validateProduct(product);
+        validateProductAvailableDiscount(product);
 
         BigDecimal discountFraction = directPercentageDiscountDTO.percentage().divide(BigDecimal.valueOf(100));
         BigDecimal discountFactor = BigDecimal.ONE.subtract(discountFraction);
@@ -184,6 +201,86 @@ public class ProductService {
         throw new BusinessRuleException("Product has no active discounts to remove.");
     }
 
+    @Transactional
+    public ProductDTO partialUpdateProduct(Long id, JsonPatch patch) {
+        Product entity = productRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Product with id '" + id + "' not found."));
+        BigDecimal originalPrice = entity.getPrice();
+        String originalNormalizedName = entity.getNormalizedName();
+
+        ProductDTO patchedDto;
+        try {
+            JsonNode productNode = objectMapper.valueToTree(entity);
+            JsonNode patchedNode = patch.apply(productNode);
+            patchedDto = objectMapper.treeToValue(patchedNode, ProductDTO.class);
+        } catch (JsonProcessingException | JsonPatchException e) {
+            throw new BusinessRuleException(e.getMessage());
+        }
+
+        entity.setName(patchedDto.name());
+        entity.setDescription(patchedDto.description());
+        entity.setPrice(patchedDto.price());
+        entity.setStock(patchedDto.stock());
+        validateProductUpdate(originalPrice, originalNormalizedName, entity);
+
+        entity.setUpdatedAt(Instant.now());
+        Product updatedProduct = productRepository.saveAndFlush(entity);
+        return new ProductDTO(updatedProduct);
+    }
+
+    private void validateProductUpdate(BigDecimal originalPrice, String originalNormalizedName,Product patchedProduct) {
+        validateRequiredFields(patchedProduct);
+        validateBusinessRules(patchedProduct);
+        processUpdateSideEffects(originalPrice, originalNormalizedName, patchedProduct);
+    }
+
+    private void validateRequiredFields(Product entity){
+        if (entity.getName() == null) {
+            throw new BusinessRuleException("Name is required");
+        }
+        if (entity.getStock() == null) {
+            throw new BusinessRuleException("Stock is required");
+        }
+        if (entity.getPrice() == null) {
+            throw new BusinessRuleException("Price is required");
+        }
+    }
+
+    private void validateBusinessRules(Product patched) {
+        if (patched.getName().length() > 100 || patched.getName().length() < 3) {
+            throw new BusinessRuleException("Name must be between 3 and 100 characters");
+        }
+
+        if (!patched.getName().matches("^[\\p{L}0-9\\s\\-_,.]+$")){
+            throw new BusinessRuleException("Name can only contain letters, numbers, spaces, and special characters (-, _, , .)");
+        }
+
+        if (patched.getDescription() != null && patched.getDescription().length() > 300) {
+            throw new BusinessRuleException("Description must be less than or equal to 300 characters");
+        }
+
+        if (patched.getStock() < 0 || patched.getStock() > 999999) {
+            throw new BusinessRuleException("Stock must be between 0 and 999999");
+        }
+
+        if (patched.getPrice().compareTo(BigDecimal.valueOf(0.01)) < 0 || patched.getPrice().compareTo(BigDecimal.valueOf(1000000.00)) > 0) {
+            throw new BusinessRuleException("Price must be between 0.01 and 1000000.00");
+        }
+    }
+
+    private void processUpdateSideEffects (BigDecimal originalPrice, String originalNormalizedName,Product patched) {
+        String normalizedPatchedName = Utils.normalizeName(patched.getName());
+        if(!normalizedPatchedName.equals(originalNormalizedName) && productRepository.existsByNormalizedName(normalizedPatchedName)) {
+                throw new ResourceConflictException("Product with name '" + patched.getName() + "' already exists.");
+            }
+
+        patched.setNormalizedName(normalizedPatchedName);
+
+        if (!originalPrice.equals(patched.getPrice())){
+            hasDiscountCheck(patched);
+        }
+    }
+
     private BigDecimal calculateFinalPrice(Product product, Coupon coupon) {
         if (coupon.getType() == CouponEnum.PERCENT) {
             BigDecimal discountFactor = BigDecimal.ONE.subtract(coupon.getValue().divide(BigDecimal.valueOf(100)));
@@ -193,7 +290,7 @@ public class ProductService {
         }
     }
 
-    private void validateProduct(Product product) {
+    private void validateProductAvailableDiscount(Product product) {
         if (product.getDeletedAt() != null) {
             throw new BusinessRuleException("Product is deleted and cannot have a coupon applied.");
         }

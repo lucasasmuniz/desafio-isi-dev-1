@@ -1,5 +1,6 @@
 package br.com.lmuniz.desafio.senai.domains.entities;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 
 import java.math.BigDecimal;
@@ -15,6 +16,7 @@ public class ProductDirectDiscountApplication {
     private Long id;
     private BigDecimal discountPercentage;
 
+    @JsonBackReference("product-direct_discount_application")
     @ManyToOne()
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;

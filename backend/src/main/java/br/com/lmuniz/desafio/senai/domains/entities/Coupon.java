@@ -1,6 +1,7 @@
 package br.com.lmuniz.desafio.senai.domains.entities;
 
 import br.com.lmuniz.desafio.senai.domains.enums.CouponEnum;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 
 import java.math.BigDecimal;
@@ -49,6 +50,7 @@ public class Coupon {
     @Column(columnDefinition = "TIMESTAMP WITHOUT TIME ZONE")
     private Instant deletedAt;
 
+    @JsonManagedReference("coupon-application")
     @OneToMany(mappedBy = "coupon", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     private final List<ProductCouponApplication> productCouponApplications = new ArrayList<>();
 

@@ -5,6 +5,7 @@ import br.com.lmuniz.desafio.senai.domains.dtos.products.ProductDTO;
 import br.com.lmuniz.desafio.senai.domains.dtos.coupons.CouponCodeDTO;
 import br.com.lmuniz.desafio.senai.domains.dtos.products.ProductDiscountDTO;
 import br.com.lmuniz.desafio.senai.services.ProductService;
+import com.github.fge.jsonpatch.JsonPatch;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -38,8 +39,7 @@ public class ProductController {
 
     @PostMapping("/{id}/restore")
     public ResponseEntity<ProductDTO> restoreProduct(@PathVariable Long id) {
-        ProductDTO dtoproduct = productService.restoreProduct(id);
-        return ResponseEntity.ok(dtoproduct);
+        return ResponseEntity.ok(productService.restoreProduct(id));
     }
 
     @GetMapping("/{id}")
@@ -64,5 +64,12 @@ public class ProductController {
     public ResponseEntity<Void> removeDiscount(@PathVariable Long id) {
         productService.removeDiscount(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping(value = "{id}", consumes = "application/json-patch+json")
+    public ResponseEntity<ProductDTO> partialUpdateProduct(
+            @PathVariable Long id,
+            @RequestBody JsonPatch patch) {
+        return ResponseEntity.ok(productService.partialUpdateProduct(id, patch));
     }
 }

@@ -9,9 +9,11 @@ import br.com.lmuniz.desafio.senai.services.exceptions.BusinessRuleException;
 import br.com.lmuniz.desafio.senai.services.exceptions.ResourceConflictException;
 import br.com.lmuniz.desafio.senai.services.exceptions.ResourceNotFoundException;
 import br.com.lmuniz.desafio.senai.utils.Utils;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.fge.jsonpatch.JsonPatch;
+import com.github.fge.jsonpatch.JsonPatchException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -95,32 +97,38 @@ public class CouponService {
             JsonNode patchedNode = patch.apply(originalNode);
             patchedCoupon = objectMapper.treeToValue(patchedNode, Coupon.class);
 
-            if (!entity.getCode().equals(patchedCoupon.getCode())) {
-                throw new BusinessRuleException("Coupon code cannot be changed");
-            }
-            if (!Objects.equals(entity.getUsesCount(), patchedCoupon.getUsesCount())) {
-                throw new BusinessRuleException("Usage count cannot be changed manually");
-            }
-            if (!entity.getCreatedAt().equals(patchedCoupon.getCreatedAt())) {
-                throw new BusinessRuleException("Creation date cannot be changed");
-            }
-            if (!Objects.equals(entity.getUpdatedAt(), patchedCoupon.getUpdatedAt())) {
-                throw new BusinessRuleException("Update date cannot be changed manually");
-            }
-            if (!Objects.equals(entity.getDeletedAt(), patchedCoupon.getDeletedAt())) {
-                throw new BusinessRuleException("Delete date cannot be changed manually via patch");
-            }
-
-        } catch (Exception e) {
+        } catch (JsonProcessingException | JsonPatchException e) {
             throw new BusinessRuleException(e.getMessage());
         }
 
+        validateImmutableFields(entity, patchedCoupon);
         validateCoupon(patchedCoupon);
 
         patchedCoupon.setUpdatedAt(Instant.now());
         Coupon couponResult = couponRepository.saveAndFlush(patchedCoupon);
 
         return new CouponDetailsDTO(couponResult);
+    }
+
+    private static void validateImmutableFields(Coupon entity, Coupon patchedCoupon) {
+        if (!entity.getId().equals(patchedCoupon.getId())) {
+            throw new BusinessRuleException("Product ID cannot be changed");
+        }
+        if (!entity.getCode().equals(patchedCoupon.getCode())) {
+            throw new BusinessRuleException("Coupon code cannot be changed");
+        }
+        if (!Objects.equals(entity.getUsesCount(), patchedCoupon.getUsesCount())) {
+            throw new BusinessRuleException("Usage count cannot be changed manually");
+        }
+        if (!entity.getCreatedAt().equals(patchedCoupon.getCreatedAt())) {
+            throw new BusinessRuleException("Creation date cannot be changed");
+        }
+        if (!Objects.equals(entity.getUpdatedAt(), patchedCoupon.getUpdatedAt())) {
+            throw new BusinessRuleException("Update date cannot be changed manually");
+        }
+        if (!Objects.equals(entity.getDeletedAt(), patchedCoupon.getDeletedAt())) {
+            throw new BusinessRuleException("Delete date cannot be changed manually");
+        }
     }
 
     protected void validateCoupon(Coupon entity) {
