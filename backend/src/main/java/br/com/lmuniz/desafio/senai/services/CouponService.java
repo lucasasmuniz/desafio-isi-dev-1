@@ -5,7 +5,9 @@ import br.com.lmuniz.desafio.senai.domains.dtos.coupons.CouponDetailsDTO;
 import br.com.lmuniz.desafio.senai.domains.entities.Coupon;
 import br.com.lmuniz.desafio.senai.domains.enums.CouponEnum;
 import br.com.lmuniz.desafio.senai.repositories.CouponRepository;
+import br.com.lmuniz.desafio.senai.repositories.ProductCouponApplicationRepository;
 import br.com.lmuniz.desafio.senai.services.exceptions.BusinessRuleException;
+import br.com.lmuniz.desafio.senai.services.exceptions.DatabaseException;
 import br.com.lmuniz.desafio.senai.services.exceptions.ResourceConflictException;
 import br.com.lmuniz.desafio.senai.services.exceptions.ResourceNotFoundException;
 import br.com.lmuniz.desafio.senai.utils.Utils;
@@ -18,20 +20,22 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.List;
-import java.util.Objects;
 
 @Service
 public class CouponService {
 
     private final CouponRepository couponRepository;
+    private final ProductCouponApplicationRepository productCouponApplicationRepository;
     private final ObjectMapper objectMapper;
 
-    public CouponService (CouponRepository couponRepository, ObjectMapper objectMapper) {
+    public CouponService (CouponRepository couponRepository, ProductCouponApplicationRepository productCouponApplicationRepository, ObjectMapper objectMapper) {
         this.couponRepository = couponRepository;
+        this.productCouponApplicationRepository = productCouponApplicationRepository;
         this.objectMapper = objectMapper;
     }
 
@@ -47,7 +51,7 @@ public class CouponService {
         Coupon entity = new Coupon(
                 normalizedCode,
                 CouponEnum.valueOf(couponDTO.type().toUpperCase()),
-                couponDTO.value(),
+                couponDTO.value().setScale(2, BigDecimal.ROUND_HALF_UP),
                 couponDTO.oneShot(),
                 maxUses,
                 couponDTO.validFrom(),
@@ -88,47 +92,45 @@ public class CouponService {
 
     @Transactional
     public CouponDetailsDTO partialUpdateCoupon(Long id, JsonPatch patch) {
-        Coupon patchedCoupon;
+        CouponDTO patchedCoupon;
         Coupon entity = couponRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Coupon with ID " + id + " not found"));
         try {
             JsonNode originalNode = objectMapper.valueToTree(entity);
 
             JsonNode patchedNode = patch.apply(originalNode);
-            patchedCoupon = objectMapper.treeToValue(patchedNode, Coupon.class);
+            patchedCoupon = objectMapper.treeToValue(patchedNode, CouponDTO.class);
 
         } catch (JsonProcessingException | JsonPatchException e) {
             throw new BusinessRuleException(e.getMessage());
         }
+        BigDecimal previousValue = entity.getValue();
+        CouponEnum previousType = entity.getType();
 
-        validateImmutableFields(entity, patchedCoupon);
-        validateCoupon(patchedCoupon);
+        BigDecimal actualValue = patchedCoupon.value().setScale(2, RoundingMode.HALF_UP);
+        CouponEnum actualType = CouponEnum.valueOf(patchedCoupon.type().toUpperCase());
 
-        patchedCoupon.setUpdatedAt(Instant.now());
-        Coupon couponResult = couponRepository.saveAndFlush(patchedCoupon);
+        entity.setType(actualType);
+        entity.setValue(actualValue);
+        entity.setOneShot(patchedCoupon.oneShot());
+        entity.setMaxUses(patchedCoupon.maxUses());
+        entity.setValidFrom(patchedCoupon.validFrom());
+        entity.setValidUntil(patchedCoupon.validUntil());
+
+        validateCoupon(entity);
+        if (!previousValue.equals(entity.getValue()) || !previousType.equals(entity.getType())) {
+            int removedCount = productCouponApplicationRepository.removeActiveApplicationsByCouponId(id, Instant.now());
+            if (entity.getUsesCount() >= removedCount) {
+                entity.setUsesCount(entity.getUsesCount() - removedCount);
+            } else {
+                throw new DatabaseException("Cannot update coupon value, as it would result in a negative usage count. Current uses: " + entity.getUsesCount() + ", removed applications: " + removedCount);
+            }
+        }
+
+        entity.setUpdatedAt(Instant.now());
+        Coupon couponResult = couponRepository.saveAndFlush(entity);
 
         return new CouponDetailsDTO(couponResult);
-    }
-
-    private static void validateImmutableFields(Coupon entity, Coupon patchedCoupon) {
-        if (!entity.getId().equals(patchedCoupon.getId())) {
-            throw new BusinessRuleException("Product ID cannot be changed");
-        }
-        if (!entity.getCode().equals(patchedCoupon.getCode())) {
-            throw new BusinessRuleException("Coupon code cannot be changed");
-        }
-        if (!Objects.equals(entity.getUsesCount(), patchedCoupon.getUsesCount())) {
-            throw new BusinessRuleException("Usage count cannot be changed manually");
-        }
-        if (!entity.getCreatedAt().equals(patchedCoupon.getCreatedAt())) {
-            throw new BusinessRuleException("Creation date cannot be changed");
-        }
-        if (!Objects.equals(entity.getUpdatedAt(), patchedCoupon.getUpdatedAt())) {
-            throw new BusinessRuleException("Update date cannot be changed manually");
-        }
-        if (!Objects.equals(entity.getDeletedAt(), patchedCoupon.getDeletedAt())) {
-            throw new BusinessRuleException("Delete date cannot be changed manually");
-        }
     }
 
     protected void validateCoupon(Coupon entity) {
