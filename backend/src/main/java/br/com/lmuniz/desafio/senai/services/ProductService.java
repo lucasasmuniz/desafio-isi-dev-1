@@ -68,7 +68,7 @@ public class ProductService {
                 name,
                 normalizedName,
                 dto.description(),
-                dto.price(),
+                dto.price().setScale(2, RoundingMode.HALF_UP),
                 dto.stock()
         );
         entity = productRepository.save(entity);
@@ -228,7 +228,7 @@ public class ProductService {
 
         entity.setName(patchedDto.name());
         entity.setDescription(patchedDto.description());
-        entity.setPrice(patchedDto.price());
+        entity.setPrice(patchedDto.price().setScale(2, RoundingMode.HALF_UP));
         entity.setStock(patchedDto.stock());
         validateProductUpdate(originalPrice, originalNormalizedName, entity);
 
@@ -285,7 +285,7 @@ public class ProductService {
 
         patched.setNormalizedName(normalizedPatchedName);
 
-        if (!originalPrice.equals(patched.getPrice())){
+        if (!originalPrice.equals(patched.getPrice().setScale(2, RoundingMode.HALF_UP))){
             hasDiscountCheck(patched);
         }
     }
