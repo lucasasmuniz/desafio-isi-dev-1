@@ -1,0 +1,30 @@
+.nav-item {
+  display: flex;
+  align-items: center;
+  padding: 10px 5px;
+  border-radius: 8px;
+  transition: background-color 0.2s;
+  color: var(--senai-color-font-primary);
+  margin-bottom: 10px;
+}
+
+.nav-item:hover {
+  background-color: var(--senai-color-bg-button-hover);
+}
+
+.nav-item-active {
+  background-color: var(--senai-color-bg-button);
+  color: var(--senai-color-font-button-hover);
+  font-weight: bold;
+}
+
+.nav-item-icon {
+  margin-right: 10px;
+  width: 18px;
+  height: 20px;
+}
+
+.nav-item-text {
+  font-size: 16px;
+  font-weight: 500;
+}
