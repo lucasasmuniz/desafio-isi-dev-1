@@ -1,17 +1,19 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
 
 :root{
-  --senai-color-bg-primary: #F8FAFC;
-  --senai-color-bg-sidebar: #FFFFFF;
+    --senai-color-bg-primary: #F8FAFC;
+    --senai-color-bg-secondary: #FFFFFF;
+    --senai-color-bg-icon: #E2E8F0;
 
-  --senai-color-border: #F1F5F9;
+    --senai-color-border: #F1F5F9;
 
-  --senai-color-font-primary: #3F3F46;
 
-  --senai-color-bg-button: #e0e7ff;
-  --senai-color-bg-button-hover: #e9ecef;;
+    --senai-color-font-primary: #3F3F46;
 
-  --senai-color-font-button-hover: #4f46e5;
+    --senai-color-bg-button: #e0e7ff;
+    --senai-color-bg-button-hover: #e9ecef;;
+
+    --senai-color-font-button-hover: #4f46e5;
 
 }
 
@@ -30,4 +32,12 @@ html, body{
 a,a:hover{
     text-decoration: none;
     color: unset;
+}
+
+.app-layout {
+  position: relative;
+}
+
+.main-content-wrapper {
+  margin-left: 216px;
 }
