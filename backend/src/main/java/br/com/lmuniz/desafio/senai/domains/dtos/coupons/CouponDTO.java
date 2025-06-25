@@ -15,7 +15,7 @@ public record CouponDTO(
         String code,
 
         @NotBlank(message = "Required field")
-        @Pattern(regexp = "^(percent|fixed)$", message = "Type must be either 'percent' or 'fixed'")
+        @Pattern(regexp = "^(percent|fixed|FIXED|PERCENT)$", message = "Type must be either 'percent' or 'fixed'")
         String type,
 
         @NotNull(message = "Required field")
