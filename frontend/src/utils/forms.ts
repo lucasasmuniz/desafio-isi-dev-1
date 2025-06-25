@@ -58,7 +58,7 @@ export function updateAll(inputs: any, newValue: any) {
   const newInputs: any = {};
   for (const name in inputs) {
     if(name === "price"){
-      newInputs[name] = { ...inputs[name], value: price.formatCurrencyInput((newValue[name]).toString()) };
+      newInputs[name] = { ...inputs[name], value: price.parseCurrencyInternacional((newValue[name]).toString()) };
     } else {
     newInputs[name] = { ...inputs[name], value: newValue[name] };
     }

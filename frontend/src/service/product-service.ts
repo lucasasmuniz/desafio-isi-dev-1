@@ -1,6 +1,6 @@
 import type { AxiosRequestConfig } from "axios";
 import backendRequest from "../utils/requests";
-import type { ProductDiscountDTO, ProductDTO } from "../models/product";
+import type { ProductDTO } from "../models/product";
 import type { JsonPatchOp } from "../models/jsonPatch";
 
 export function findPageRequest(

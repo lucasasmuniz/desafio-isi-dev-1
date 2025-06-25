@@ -16,3 +16,11 @@ export function parseCurrencyBRL(value: string): string {
     .replace(".", "")
     .replace(",", ".");
 }
+
+export function parseCurrencyInternacional(value: string): string {
+  return Number(value).toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    minimumFractionDigits: 2,
+  });
+}
