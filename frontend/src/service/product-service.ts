@@ -40,6 +40,15 @@ export function deleteById(id: number) {
   return backendRequest(config);
 }
 
+export function removeDiscountFromProduct(id: number) {
+  const config: AxiosRequestConfig = {
+    method: "DELETE",
+    url: `/api/v1/products/${id}/discount`,
+  };
+
+  return backendRequest(config);
+}
+
 export function updateProduct(jsonPatch: JsonPatchOp[], id: number) {
   const config: AxiosRequestConfig = {
     method: "PATCH",

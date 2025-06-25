@@ -54,6 +54,7 @@
   border-radius: 6px;
   display: inline-block;
   white-space: nowrap;
+  cursor: pointer;
 }
 
 .actions {
@@ -88,4 +89,10 @@
 
 .product-table tbody tr:last-child td {
   border-bottom: none;
+}
+
+.discount-badge:hover{
+  transition: 0.5s;
+  background-color: #ffe6e6;
+  color: #612d2d;
 }

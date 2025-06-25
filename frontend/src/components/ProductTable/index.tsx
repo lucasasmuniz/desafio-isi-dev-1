@@ -8,17 +8,24 @@ import * as productService from '../../service/product-service';
 
 type Props = {
   product: ProductDiscountDTO;
-  onDelete: Function;
+  onClick: Function;
 }
 
-export default function ProductTable({ product, onDelete }: Props) {
+export default function ProductTable({ product, onClick }: Props) {
   const navigate = useNavigate()
 
   function handleDeleteProduct(id: number) {
     productService.deleteById(id)
       .then(() => {
-        onDelete();
+        onClick();
       });
+  }
+
+  function handleRemoveDiscount(id: number) {
+    productService.removeDiscountFromProduct(id)
+    .then(()=> {
+      onClick();
+    })
   }
 
   return (
@@ -35,8 +42,8 @@ export default function ProductTable({ product, onDelete }: Props) {
               </div>
               {
                 product.discount.type === "percent" ?
-                  <span className="discount-badge">{product.discount.value.toFixed(2)}%</span> :
-                  <span className="discount-badge">- R${product.discount.value.toFixed(2)}</span>
+                  <span onClick={() => handleRemoveDiscount(product.id)} className="discount-badge">{product.discount.value.toFixed(2)}%</span> :
+                  <span onClick={() => handleRemoveDiscount(product.id)} className="discount-badge">- R${product.discount.value.toFixed(2)}</span>
               }
             </>
             : <p className="actual-price">R$ {product.finalPrice.toFixed(2)}</p>
