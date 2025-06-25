@@ -13,3 +13,11 @@ export type ProductDiscountDTO = {
     createdAt:string,
     updatedAt:string
 }
+
+export type ProductDTO = {
+    id: number,
+    name: string,
+    description:string,
+    stock:number,
+    price:number
+}
