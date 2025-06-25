@@ -1,0 +1,91 @@
+.product-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.product-table thead {
+  font-weight: 600;
+  text-align: left;
+}
+
+.product-table th,
+.product-table td {
+  padding: 16px;
+  border-bottom: 1px solid #e6e6e6;
+  vertical-align: middle;
+}
+
+.truncate-description {
+  max-width: 250px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #4a5568;
+}
+
+.price-container {
+  display: flex;
+  flex-direction: row;  
+  align-items: center;  
+  gap: 8px;  
+}
+
+.price-line-through {
+  text-decoration: line-through;
+  color: #a0aec0;
+  font-size: 0.9em;
+}
+
+.actual-price {
+  font-weight: 600;
+  color: #1a202c;
+}
+
+.discount-badge {
+  background: #e6fffa;
+  color: #2f855a;
+  font-size: 0.75em;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 6px;
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.actions {
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  height: 100%;
+}
+
+.actions img {
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
+  opacity: 0.8;
+  transition: opacity 0.2s ease;
+  margin-right: 12px;
+}
+
+.actions img:last-child {
+  margin-right: 0;
+}
+
+.actions img:hover {
+  opacity: 1;
+}
+
+.product-table td {
+  padding: 16px;
+  border-bottom: 1px solid #e6e6e6;
+  vertical-align: middle;
+}
+
+.product-table tbody tr:last-child td {
+  border-bottom: none;
+}
