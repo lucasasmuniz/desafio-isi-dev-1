@@ -34,6 +34,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -226,67 +227,76 @@ public class ProductService {
             throw new BusinessRuleException(e.getMessage());
         }
 
+        Map<String, String> errors = new HashMap<>();
+
         entity.setName(patchedDto.name());
         entity.setDescription(patchedDto.description());
         entity.setPrice(patchedDto.price().setScale(2, RoundingMode.HALF_UP));
         entity.setStock(patchedDto.stock());
-        validateProductUpdate(originalPrice, originalNormalizedName, entity);
+
+        validateProductUpdate(entity, errors);
+        processUpdateSideEffects(originalNormalizedName, entity, errors);
+
+        if (!errors.isEmpty()) {
+            throw new BusinessRuleException(errors);
+        }
+
+        if (!originalPrice.equals(entity.getPrice())){
+            hasDiscountCheck(entity);
+        }
 
         entity.setUpdatedAt(Instant.now());
         Product updatedProduct = productRepository.saveAndFlush(entity);
         return new ProductDTO(updatedProduct);
     }
 
-    private void validateProductUpdate(BigDecimal originalPrice, String originalNormalizedName,Product patchedProduct) {
-        validateRequiredFields(patchedProduct);
-        validateBusinessRules(patchedProduct);
-        processUpdateSideEffects(originalPrice, originalNormalizedName, patchedProduct);
+    private void validateProductUpdate(Product patchedProduct, Map<String, String> errors) {
+        validateRequiredFields(patchedProduct, errors);
+        validateBusinessRules(patchedProduct, errors);
     }
 
-    private void validateRequiredFields(Product entity){
-        if (entity.getName() == null) {
-            throw new BusinessRuleException("Name is required");
+    private void validateRequiredFields(Product entity, Map<String, String> errors){
+        if (entity.getName() == null || entity.getName().isBlank()) {
+            errors.put("name", "Name is a required field");
         }
         if (entity.getStock() == null) {
-            throw new BusinessRuleException("Stock is required");
+            errors.put("stock", "Stock is a required field");
         }
         if (entity.getPrice() == null) {
-            throw new BusinessRuleException("Price is required");
+            errors.put("price", "Price is a required field");
         }
     }
 
-    private void validateBusinessRules(Product patched) {
-        if (patched.getName().length() > 100 || patched.getName().length() < 3) {
-            throw new BusinessRuleException("Name must be between 3 and 100 characters");
-        }
-
-        if (!patched.getName().matches("^[\\p{L}0-9\\s\\-_,.]+$")){
-            throw new BusinessRuleException("Name can only contain letters, numbers, spaces, and special characters (-, _, , .)");
+    private void validateBusinessRules(Product patched, Map<String, String> errors) {
+        if (patched.getName() != null && !patched.getName().isBlank()) {
+            if (patched.getName().length() > 100 || patched.getName().length() < 3) {
+                errors.put("name", "Name must be between 3 and 100 characters");
+            }
+            if (!patched.getName().matches("^[\\p{L}0-9\\s\\-_,.]+$")){
+                errors.put("name", "Name can only contain letters, numbers, spaces, and special characters (-, _, , .)");
+            }
         }
 
         if (patched.getDescription() != null && patched.getDescription().length() > 300) {
-            throw new BusinessRuleException("Description must be less than or equal to 300 characters");
+            errors.put("description", "Description must be less than or equal to 300 characters");
         }
 
-        if (patched.getStock() < 0 || patched.getStock() > 999999) {
-            throw new BusinessRuleException("Stock must be between 0 and 999999");
+        if (patched.getStock() != null && (patched.getStock() < 0 || patched.getStock() > 999999)) {
+            errors.put("stock", "Stock must be between 0 and 999999");
         }
 
-        if (patched.getPrice().compareTo(BigDecimal.valueOf(0.01)) < 0 || patched.getPrice().compareTo(BigDecimal.valueOf(1000000.00)) > 0) {
-            throw new BusinessRuleException("Price must be between 0.01 and 1000000.00");
+        if (patched.getPrice() != null && (patched.getPrice().compareTo(BigDecimal.valueOf(0.01)) < 0 || patched.getPrice().compareTo(BigDecimal.valueOf(1000000.00)) > 0)) {
+            errors.put("price", "Price must be between 0.01 and 1000000.00");
         }
     }
 
-    private void processUpdateSideEffects (BigDecimal originalPrice, String originalNormalizedName,Product patched) {
-        String normalizedPatchedName = Utils.normalizeName(patched.getName());
-        if(!normalizedPatchedName.equals(originalNormalizedName) && productRepository.existsByNormalizedName(normalizedPatchedName)) {
-                throw new ResourceConflictException("Product with name '" + patched.getName() + "' already exists.");
+    private void processUpdateSideEffects (String originalNormalizedName, Product patched, Map<String, String> errors) {
+        if (patched.getName() != null && !patched.getName().isBlank()) {
+            String normalizedPatchedName = Utils.normalizeName(patched.getName());
+            if(!normalizedPatchedName.equals(originalNormalizedName) && productRepository.existsByNormalizedName(normalizedPatchedName)) {
+                errors.put("name", "Product with name '" + patched.getName() + "' already exists.");
             }
-
-        patched.setNormalizedName(normalizedPatchedName);
-
-        if (!originalPrice.equals(patched.getPrice().setScale(2, RoundingMode.HALF_UP))){
-            hasDiscountCheck(patched);
+            patched.setNormalizedName(normalizedPatchedName);
         }
     }
 

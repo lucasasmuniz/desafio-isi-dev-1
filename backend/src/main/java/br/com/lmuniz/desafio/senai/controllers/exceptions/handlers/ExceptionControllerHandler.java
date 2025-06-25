@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.time.Instant;
+import java.util.Map;
 
 @RestControllerAdvice
 public class ExceptionControllerHandler {
@@ -42,15 +43,25 @@ public class ExceptionControllerHandler {
     }
 
     @ExceptionHandler(BusinessRuleException.class)
-    public ResponseEntity<StandardException> BusinessRuleException(BusinessRuleException e, HttpServletRequest request) {
-        StandardException error = new StandardException();
+    public ResponseEntity<ValidationException> businessRuleException(BusinessRuleException e, HttpServletRequest request) {
         HttpStatus status = HttpStatus.BAD_REQUEST;
-        error.setTimestamp(Instant.now());
-        error.setStatus(status.value());
-        error.setError("Business rule exception");
-        error.setMessage(e.getMessage());
-        error.setPath(request.getRequestURI());
-        return ResponseEntity.status(status).body(error);
+        ValidationException err = new ValidationException();
+        err.setTimestamp(Instant.now());
+        err.setStatus(status.value());
+        err.setPath(request.getRequestURI());
+        if (e.getErrors() != null && !e.getErrors().isEmpty()) {
+            err.setError("Validation error");
+            err.setMessage("One or more fields are invalid. Please check the 'errors' list.");
+            for (Map.Entry<String, String> entry : e.getErrors().entrySet()) {
+                err.getErrors().add(new FieldMessage(entry.getKey(), entry.getValue()));
+            }
+        }
+        else {
+            err.setError("Business rule exception");
+            err.setMessage(e.getMessage());
+            err.getErrors().add(new FieldMessage("error", e.getMessage()));
+        }
+        return ResponseEntity.status(status).body(err);
     }
 
     @ExceptionHandler(InvalidPriceException.class)
