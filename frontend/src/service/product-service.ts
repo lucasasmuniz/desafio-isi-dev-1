@@ -1,5 +1,6 @@
 import type { AxiosRequestConfig } from "axios";
 import backendRequest from "../utils/requests";
+import type { ProductDiscountDTO, ProductDTO } from "../models/product";
 
 export function findPageRequest(
   minPrice: string,
@@ -27,4 +28,22 @@ export function findPageRequest(
 
 export function findById(id: number) {
   return backendRequest({ url: `/products/${id}`, method: "GET" });
+}
+
+export function deleteById(id: number) {
+  const config: AxiosRequestConfig = {
+    method: "DELETE",
+    url: `/api/v1/products/${id}`,
+  };
+
+  return backendRequest(config);
+}
+
+export function saveProduct(product: ProductDTO) {
+  const config: AxiosRequestConfig = {
+    method: "POST",
+    url: `/api/v1/products`,
+    data:product
+  };
+  return backendRequest(config);
 }
