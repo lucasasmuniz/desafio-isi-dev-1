@@ -1,0 +1,86 @@
+.dialog-background {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.dialog-card {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 30px;
+  border-radius: 8px;
+  background-color: #ffffff;
+}
+
+.dialog-title h2 {
+  font-weight: 600;
+  font-size: 20px;
+  color: #0F172A;
+  margin-bottom: 8px;
+  display: flex;
+  gap: 8px;
+}
+
+.dialog-title p {
+  font-weight: 400;
+  font-size: 14px;
+  color: #555555D1;
+}
+
+.dialog-btn-container{
+    padding: 25px 0;
+    display: flex;
+    gap: 25px;
+    border-bottom: 2px solid #8e959e33;
+}
+
+.dialog-input-container{
+    padding: 25px 0;
+}
+
+.dialog-input-container p{
+    color: #0F172A;
+    font-weight: 500;
+    font-size: 14px;
+    margin-bottom: 10px;
+}   
+
+.dialog-input-container input{
+    width: 100%;
+    height: 40px;
+    border-radius: 6px;
+    border: 1px solid #E2E8F0;
+    background-color: #ffffff;
+    padding: 10px 12px;
+}   
+
+.dialog-coupons-container p{
+    font-weight: 500;
+    font-size: 12px;
+    color: #64748B;
+    margin-bottom: 25px;
+}
+
+.dialog-coupons{
+    display: grid;
+    grid-gap: 15px;
+    grid-template-columns: repeat(auto-fill, minmax(110px,1fr));
+}
+
+.dialog-footer{
+    display: flex;
+    justify-content: flex-end;
+    gap: 18px;
+}
+
+.dialog-footer button{
+    width: 100px;
+    align-items: center;
+    display: flex;
+    justify-content: center;
+}

@@ -6,4 +6,12 @@
   font-weight: 500;
   border-radius: 6px;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+.button-primary:hover{
+  transition: 0.5s;
+  color: #dddddd;
+  background-color: var(---senai-color-bg-button-primary-hover);
 }

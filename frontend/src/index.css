@@ -2,7 +2,7 @@
 
 :root{
     ---senai-color-bg-primary: #F8FAFC;
-    ---senai-color-bg-secondary: #FFFFFF;
+    ---senai-color-bg-secondary: #ffffff;
     ---senai-color-bg-icon: #E2E8F0;
 
     ---senai-color-border: #F1F5F9;
@@ -13,6 +13,10 @@
     ---senai-color-bg-button: #e0e7ff;
 
     ---senai-color-bg-button-primary: #0F172A;
+    ---senai-color-bg-button-primary-hover: #15213d;
+    ---senai-color-bg-button-secondary: #FFF;
+    ---senai-color-bg-button-secondary-hover: #e9e9e9;
+    
     ---senai-color-bg-button-hover: #e9ecef;
 
     ---senai-color-font-button-hover: #4f46e5;

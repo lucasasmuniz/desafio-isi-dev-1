@@ -1,7 +1,8 @@
+import type { ReactNode } from 'react';
 import './styles.css'
 
 type Props = {
-    text: string;
+    text: ReactNode;
 }
 
 export default function ButtonSecondary({text}: Props){
