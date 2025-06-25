@@ -22,10 +22,10 @@ export default function ProductFilterBar({onFiltering}: Props){
 
   function handleOnClickFilter(event: any){
     event.preventDefault();
+    if(text === "" && minPrice === "" && maxPrice === ""){
+      return;
+    }
     setUseFilter(true);
-    console.log(text);
-    console.log(parseCurrencyBRL(minPrice));
-    console.log(parseCurrencyBRL(maxPrice));
   }
 
   function handleResetFilter(event: any){
