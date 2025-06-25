@@ -1,3 +1,5 @@
+import type { JsonPatchOp } from '../models/jsonPatch';
+import type { ProductDTO } from '../models/product';
 import * as price from './prices';
 
 export function update(inputs: any, name: string, newValue: any) {
@@ -17,10 +19,49 @@ export function toValues(inputs: any) {
   return data;
 }
 
+export function generateJsonPatch(
+  original: Partial<ProductDTO>,
+  patched: Partial<ProductDTO>
+): JsonPatchOp[] {
+  const patch: JsonPatchOp[] = [];
+
+  const keys = new Set([
+    ...Object.keys(original),
+    ...Object.keys(patched)
+  ]) as Set<keyof ProductDTO>;
+
+  keys.forEach((key) => {
+    const originalValue = original[key];
+    const patchedValue = patched[key];
+
+    if (
+      originalValue !== undefined &&
+      (patchedValue === undefined || patchedValue === null)
+    ) {
+      patch.push({
+        op: 'remove',
+        path: `/${key}`
+      });
+    } else if (originalValue !== patchedValue) {
+      patch.push({
+        op: 'replace',
+        path: `/${key}`,
+        value: patchedValue
+      });
+    }
+  });
+
+  return patch;
+}
+
 export function updateAll(inputs: any, newValue: any) {
   const newInputs: any = {};
   for (const name in inputs) {
+    if(name === "price"){
+      newInputs[name] = { ...inputs[name], value: price.formatCurrencyInput((newValue[name]).toString()) };
+    } else {
     newInputs[name] = { ...inputs[name], value: newValue[name] };
+    }
   }
   return newInputs;
 }

@@ -1,6 +1,7 @@
 import type { AxiosRequestConfig } from "axios";
 import backendRequest from "../utils/requests";
 import type { ProductDiscountDTO, ProductDTO } from "../models/product";
+import type { JsonPatchOp } from "../models/jsonPatch";
 
 export function findPageRequest(
   minPrice: string,
@@ -27,13 +28,26 @@ export function findPageRequest(
 }
 
 export function findById(id: number) {
-  return backendRequest({ url: `/products/${id}`, method: "GET" });
+  return backendRequest({ url: `/api/v1/products/${id}`, method: "GET" });
 }
 
 export function deleteById(id: number) {
   const config: AxiosRequestConfig = {
     method: "DELETE",
     url: `/api/v1/products/${id}`,
+  };
+
+  return backendRequest(config);
+}
+
+export function updateProduct(jsonPatch: JsonPatchOp[], id: number) {
+  const config: AxiosRequestConfig = {
+    method: "PATCH",
+    url: `/api/v1/products/${id}`,
+    data: jsonPatch,
+    headers: {
+    'Content-Type': 'application/json-patch+json'
+  }
   };
 
   return backendRequest(config);

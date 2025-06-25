@@ -1,5 +1,5 @@
 import './styles.css';
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import ButtonPrimary from "../ButtonPrimary";
 import ButtonSecondary from "../ButtonSecondary";
@@ -8,12 +8,24 @@ import FormTextArea from "../FormTextArea";
 import * as forms from '../../utils/forms';
 import * as productService from '../../service/product-service';
 import { formatCurrencyInput, parseCurrencyBRL } from '../../utils/prices';
+import type { ProductDTO } from '../../models/product';
 
-export default function ProductForm() {
+type Props = {
+    editing: boolean
+}
+
+export default function ProductForm({ editing }: Props) {
 
     const navigate = useNavigate();
     const params = useParams();
-    const isEditing = params.productId !== "create";
+    const productId = params.productId;
+    const [productDTO, setProductDTO] = useState<ProductDTO>({
+        id: NaN,
+        name: "",
+        description: "",
+        price: NaN,
+        stock: NaN
+    });
 
     const [formData, setFormData] = useState<any>({
         name: {
@@ -63,6 +75,16 @@ export default function ProductForm() {
         }
     })
 
+    useEffect(() => {
+        if (editing) {
+            productService.findById(Number(params.productId))
+                .then((response) => {
+                    setProductDTO(response.data);
+                    setFormData(forms.updateAll(formData, response.data));
+                })
+        }
+    }, [])
+
     function handleCancel(event: any) {
         event.preventDefault();
         navigate("/products");
@@ -71,7 +93,7 @@ export default function ProductForm() {
     function handleOnChangeInput(event: any) {
         if (event.target.name === "price") {
             const numberPattern = /[0-9]+/;
-            if(!numberPattern.test(event.target.value)){
+            if (!numberPattern.test(event.target.value)) {
                 return;
             }
             const rawValue = event.target.value;
@@ -84,7 +106,7 @@ export default function ProductForm() {
 
         } else if (event.target.name === "stock") {
             const numberPattern = /^[0-9]+$/;
-            if(!numberPattern.test(event.target.value)){
+            if (!numberPattern.test(event.target.value)) {
                 return;
             }
             setFormData(forms.updateAndValidate(formData, event.target.name, Number(event.target.value)));
@@ -109,19 +131,24 @@ export default function ProductForm() {
 
         const requestBody = forms.toValues(formData);
 
-        const request = productService.saveProduct(requestBody);
+        const jsonPatch = editing
+            ? forms.generateJsonPatch(productDTO, requestBody)
+            : [];
 
+        const request = editing
+            ? productService.updateProduct(jsonPatch, productDTO.id)
+            : productService.saveProduct(requestBody);
         request
             .then(() => {
                 navigate("/products");
             })
             .catch(error => {
+                console.log(error)
                 const newFormData = forms.setBackendErrors(formData, error.response.data.errors);
                 setFormData(newFormData);
+
             })
-
     }
-
     return (
         <form className='product-form' action="">
             <div className='form-title'>

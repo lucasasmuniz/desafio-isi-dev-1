@@ -13,7 +13,7 @@ export default function ProductRegister() {
                 />
             </div>
             <div>
-                <ProductForm />
+                <ProductForm editing={false} />
             </div>
         </>
     );

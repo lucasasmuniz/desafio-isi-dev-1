@@ -3,12 +3,15 @@ import editIcon from '../../assets/edit.svg';
 import dollarIcon from '../../assets/dollar-sign.svg';
 import trashIcon from '../../assets/trash-2.svg';
 import type { ProductDiscountDTO } from '../../models/product';
+import { useNavigate } from 'react-router-dom';
 
 type Props = {
     product: ProductDiscountDTO;
 }
 
 export default function ProductTable({product}:Props) {
+  const navigate = useNavigate()
+
   return (
     <tr className='index-table'>
       <td>{product.name}</td>
@@ -36,7 +39,7 @@ export default function ProductTable({product}:Props) {
           <td>{product.stock}</td>
       }
       <td className="actions">
-        <img src={editIcon} alt="Editar" />
+        <img onClick={() => navigate("/products/" + product.id)} src={editIcon} alt="Editar" />
         <img src={dollarIcon} alt="Cupom" />
         <img src={trashIcon} alt="Deletar" />
       </td>
