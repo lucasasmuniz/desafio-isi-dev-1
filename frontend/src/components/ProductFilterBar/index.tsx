@@ -1,32 +1,115 @@
 
+import { useState } from 'react';
 import searchIcon from '../../assets/search.svg';
+import ButtonPrimary from '../ButtonPrimary';
 
 import './styles.css';
+import { useNavigate } from 'react-router-dom';
+import ButtonSecondary from '../ButtonSecondary';
 
-export default function ProductFilterBar(){
+type Props = {
+    onFiltering : Function;
+}
+
+export default function ProductFilterBar({onFiltering}: Props){
+
+  const navigate = useNavigate(); 
+
+  const [useFilter, setUseFilter] = useState<boolean>();
+  const [text, setText] = useState<string>("");
+  const [minPrice, setMinPrice] = useState<string>("")
+  const [maxPrice, setMaxPrice] = useState<string>("")
+
+  function handleOnClickFilter(event: any){
+    event.preventDefault();
+    setUseFilter(true);
+    console.log(text);
+    console.log(parseCurrencyBRL(minPrice));
+    console.log(parseCurrencyBRL(maxPrice));
+  }
+
+  function handleResetFilter(event: any){
+    event.preventDefault();
+    setUseFilter(false);
+    setText("");
+    setMinPrice("");
+    setMaxPrice("");
+    onFiltering("", null, null);
+  }
+
+  function handleOnClickNewProduct(event: any){
+    event.preventDefault();
+    navigate("create")
+  }
+
+  function handleInputTextChange(event: any){
+    setText(event.target.value);
+  }
+
+  function handlePriceChange(event: any) {
+    const rawValue = event.target.value;
+    const name = event.target.name;
+
+    const numericOnly = rawValue.replace(/\D/g, '');
+    const formatted = formatCurrencyInput(numericOnly);
+
+    if (name === 'min') {
+      setMinPrice(formatted);
+    } else if (name === 'max') {
+      setMaxPrice(formatted);
+    }
+    event.target.value = formatted;
+  }
+
+  function formatCurrencyInput(value: string): string {
+  const numericValue = value.replace(/\D/g, '');
+
+  const number = parseFloat(numericValue) / 100;
+
+  return number.toLocaleString('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+    minimumFractionDigits: 2
+  });
+}
+
+function parseCurrencyBRL(value: string): string {
+  return value
+    .replace(/[^\d,]/g, '')
+    .replace('.', '') 
+    .replace(',', '.');   
+}
 
   return (
     <form className="filter-bar mb-30">
         <div className='price-container'>
           <div className='price-filters'>
             <p>Preço Mínimo</p>
-            <input type="number" min="0" placeholder='R$ 0,00'/>
+            <input name="min" type="text" onChange={handlePriceChange} min="0" value={minPrice} placeholder='R$ 0,00'/>
           </div>
           <div className='price-filters'>
             <p>Preço Máximo</p>
-            <input type="number" min="0" placeholder='R$ 999,99'/>
+            <input name="max" type="text" onChange={handlePriceChange} min="0" value={maxPrice} placeholder='R$ 999,99'/>
           </div>
-          <div className='mt-auto' onClick={handleOnClickFilter}>
-            <ButtonPrimary text={'Filtrar'} />
-          </div>
+            {
+              useFilter
+                ?
+                <div className='mt-auto' onClick={handleResetFilter}> 
+                  <ButtonSecondary text={'↻ Limpar filtro'} />
+                </div>
+                :
+                <div className='mt-auto' onClick={handleOnClickFilter}>  
+                  <ButtonPrimary text={'Filtrar'} />
+                </div>
+            }
         </div>
-        <div className='searchbar-container'>
+        <div className='right-filter-container'>
           <div className='searchbar mt-auto'>
-            <button ><img src={searchIcon} alt="Procurar" /></button>
-            <input className='input-filters' type="text" placeholder='Buscar produto..'/>
+            <button><img src={searchIcon} alt="Procurar" /></button>
+            <input className='input-filters' onChange={handleInputTextChange} type="text" value={text} placeholder='Buscar produto..'/>
           </div>
-          <div className='mt-auto'>
-            <button className='button-primary'>+ Criar Produto</button>
+          <div className='mt-auto' onClick={handleOnClickNewProduct}>
+            <ButtonPrimary text={'+ Criar Produto'} />
           </div>
         </div>
     </form>

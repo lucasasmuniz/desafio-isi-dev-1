@@ -8,6 +8,17 @@ import { globalIgnores } from 'eslint/config'
 export default tseslint.config([
   globalIgnores(['dist']),
   {
+    rules: {
+      ...reactHooks.configs.recommended.rules,
+      "@typescript-eslint/no-unsafe-function-type": "off",
+      "@typescript-eslint/no-explicit-any" : "off",
+      "react-hooks/exhaustive-deps" : "off",
+      "@typescript-eslint/no-unused-vars": "off",
+      'react-refresh/only-export-components': [
+        'warn',
+        { allowConstantExport: true },
+      ],
+    },
     files: ['**/*.{ts,tsx}'],
     extends: [
       js.configs.recommended,

@@ -44,7 +44,7 @@
   font-weight: 500;
 }
 
-.searchbar-container{
+.right-filter-container{
   display: flex;
   gap: 36px;
 }
