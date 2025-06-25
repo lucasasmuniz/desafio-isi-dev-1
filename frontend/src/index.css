@@ -11,7 +11,9 @@
     --senai-color-font-primary: #3F3F46;
 
     --senai-color-bg-button: #e0e7ff;
-    --senai-color-bg-button-hover: #e9ecef;;
+
+    --senai-color-bg-button-primary: #0F172A;
+    --senai-color-bg-button-hover: #e9ecef;
 
     --senai-color-font-button-hover: #4f46e5;
 
@@ -51,4 +53,12 @@ a,a:hover{
     width: 100%;
     min-width: 970px;
     margin: 0 auto;
+}
+
+.mb-30{
+  margin-bottom: 30px;
+}
+
+.mt-auto{
+  margin-top: auto;
 }
