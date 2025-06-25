@@ -26,6 +26,7 @@ export default function ProductFilterBar({onFiltering}: Props){
       return;
     }
     setUseFilter(true);
+    onFiltering(parseCurrencyBRL(minPrice), parseCurrencyBRL(maxPrice), text);
   }
 
   function handleResetFilter(event: any){
@@ -34,7 +35,7 @@ export default function ProductFilterBar({onFiltering}: Props){
     setText("");
     setMinPrice("");
     setMaxPrice("");
-    onFiltering("", null, null);
+    onFiltering("", "", "");
   }
 
   function handleOnClickNewProduct(event: any){
