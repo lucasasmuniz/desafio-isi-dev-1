@@ -45,6 +45,11 @@ export default function ProductsCatalog() {
     setQueryParams({ ...queryParams, page: queryParams.page + 1 })
   }
 
+  function handleDeleteProduct(){
+    setProducts([]);
+    setQueryParams({ ...queryParams, page: 0 })
+  }
+
   return (
     <>
       <div>
@@ -68,7 +73,7 @@ export default function ProductsCatalog() {
           <tbody>
               {
                 products.map(product => [
-                  <ProductTable product={product} key={product.id}/>
+                  <ProductTable product={product} key={product.id} onDelete={handleDeleteProduct}/>
                 ])
               }
           </tbody>
