@@ -16,8 +16,8 @@ export default function ProductFilterBar(){
             <p>Preço Máximo</p>
             <input type="number" min="0" placeholder='R$ 999,99'/>
           </div>
-          <div className='mt-auto'>
-            <button className='button-primary'>Filtrar</button>
+          <div className='mt-auto' onClick={handleOnClickFilter}>
+            <ButtonPrimary text={'Filtrar'} />
           </div>
         </div>
         <div className='searchbar-container'>
