@@ -5,6 +5,8 @@ import trashIcon from '../../assets/trash-2.svg';
 import type { ProductDiscountDTO } from '../../models/product';
 import { useNavigate } from 'react-router-dom';
 import * as productService from '../../service/product-service';
+import { useState } from 'react';
+import CouponModal from '../CouponModal';
 
 type Props = {
   product: ProductDiscountDTO;
@@ -13,6 +15,11 @@ type Props = {
 
 export default function ProductTable({ product, onClick }: Props) {
   const navigate = useNavigate()
+
+  const [dialogCoupon, setDialogCoupon] = useState({
+    productId: 0,
+    visiable: false,
+  })
 
   function handleDeleteProduct(id: number) {
     productService.deleteById(id)
@@ -23,42 +30,58 @@ export default function ProductTable({ product, onClick }: Props) {
 
   function handleRemoveDiscount(id: number) {
     productService.removeDiscountFromProduct(id)
-    .then(()=> {
+      .then(() => {
+        onClick();
+      })
+  }
+
+  function handleDialogClose(value:boolean){
+    if(value){
+      setDialogCoupon({...dialogCoupon, visiable:false})
       onClick();
-    })
+    }else{
+      setDialogCoupon({...dialogCoupon, visiable:false})
+    }
+
   }
 
   return (
-    <tr className='index-table'>
-      <td>{product.name}</td>
-      <td className="truncate-description">{product.description}</td>
-      <td className="price-container">
+    <>
+      <tr className='index-table'>
+        <td>{product.name}</td>
+        <td className="truncate-description">{product.description}</td>
+        <td className="price-container">
+          {
+            product.discount !== null ?
+              <>
+                <div className="prices">
+                  <p className="price-line-through">R$ {product.price.toFixed(2)}</p>
+                  <p className="actual-price">R$ {product.finalPrice.toFixed(2)}</p>
+                </div>
+                {
+                  product.discount.type === "percent" ?
+                    <span onClick={() => handleRemoveDiscount(product.id)} className="discount-badge">{product.discount.value.toFixed(2)}%</span> :
+                    <span onClick={() => handleRemoveDiscount(product.id)} className="discount-badge">- R${product.discount.value.toFixed(2)}</span>
+                }
+              </>
+              : <p className="actual-price">R$ {product.finalPrice.toFixed(2)}</p>
+          }
+        </td>
         {
-          product.discount !== null ?
-            <>
-              <div className="prices">
-                <p className="price-line-through">R$ {product.price.toFixed(2)}</p>
-                <p className="actual-price">R$ {product.finalPrice.toFixed(2)}</p>
-              </div>
-              {
-                product.discount.type === "percent" ?
-                  <span onClick={() => handleRemoveDiscount(product.id)} className="discount-badge">{product.discount.value.toFixed(2)}%</span> :
-                  <span onClick={() => handleRemoveDiscount(product.id)} className="discount-badge">- R${product.discount.value.toFixed(2)}</span>
-              }
-            </>
-            : <p className="actual-price">R$ {product.finalPrice.toFixed(2)}</p>
+          product.isOutOfStock ?
+            <td>Esgotado</td> :
+            <td>{product.stock}</td>
         }
-      </td>
+        <td className="actions">
+          <img onClick={() => navigate("/products/" + product.id)} src={editIcon} alt="Editar" />
+          <img onClick={() => setDialogCoupon({ ...dialogCoupon, visiable: true, productId: product.id})} src={dollarIcon} alt="Cupom" />
+          <img onClick={() => handleDeleteProduct(product.id)} src={trashIcon} alt="Deletar" />
+        </td>
+      </tr>
       {
-        product.isOutOfStock ?
-          <td>Esgotado</td> :
-          <td>{product.stock}</td>
+        dialogCoupon.visiable &&
+        <CouponModal productId={dialogCoupon.productId} onDialogAnswer={handleDialogClose} />
       }
-      <td className="actions">
-        <img onClick={() => navigate("/products/" + product.id)} src={editIcon} alt="Editar" />
-        <img src={dollarIcon} alt="Cupom" />
-        <img onClick={() => handleDeleteProduct(product.id)} src={trashIcon} alt="Deletar" />
-      </td>
-    </tr>
+    </>
   );
 }

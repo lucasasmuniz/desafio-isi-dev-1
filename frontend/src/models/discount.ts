@@ -3,3 +3,7 @@ export type DiscountDTO = {
     value:number,
     appliedAt:string
 }
+
+export type applyDiscountDTO = {
+    percentage:number
+}

@@ -70,3 +70,23 @@ export function saveProduct(product: ProductDTO) {
   };
   return backendRequest(config);
 }
+
+export function applyCouponToProduct(productId: number, code:string) {
+  const data = { code };
+  const config: AxiosRequestConfig = {
+    method: "POST",
+    url: `/api/v1/products/${productId}/discount/coupon`,
+    data:data
+  };
+  return backendRequest(config);
+}
+
+export function applyDirectDiscountToProduct(productId: number, percentage:number) {
+  const data = { percentage };
+  const config: AxiosRequestConfig = {
+    method: "POST",
+    url: `/api/v1/products/${productId}/discount/percent`,
+    data:data
+  };
+  return backendRequest(config);
+}

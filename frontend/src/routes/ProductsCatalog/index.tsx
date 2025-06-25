@@ -5,8 +5,8 @@ import ProductTable from '../../components/ProductTable';
 import type { ProductDiscountDTO } from "../../models/product";
 import * as productService from '../../service/product-service';
 
-
 import { useEffect, useState } from 'react';
+
 
 type QueryParams = {
   minPrice: string,

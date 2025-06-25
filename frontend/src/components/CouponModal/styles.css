@@ -68,8 +68,9 @@
 
 .dialog-coupons{
     display: grid;
-    grid-gap: 15px;
-    grid-template-columns: repeat(auto-fill, minmax(110px,1fr));
+    grid-gap: 20px;
+    grid-template-columns: repeat(auto-fill, minmax(120px,1fr));
+    margin-bottom: 20px;
 }
 
 .dialog-footer{
@@ -83,4 +84,33 @@
     align-items: center;
     display: flex;
     justify-content: center;
+}
+
+.dialog-input-container span{
+    margin-top: 5px;
+    font-size: 10px;
+    font-weight: 400;
+    color: #64748B;
+}
+
+.coupons button{
+    width: 140px;
+    height: 60px;
+    font-size: 12px;
+}
+
+.error-message {
+    color: var(---senai-color-input-error);
+    font-size: 10px;
+    font-weight: 400;
+    display: none;
+    margin-top: 4px;
+}
+
+.error-message.show {
+    display: block;
+}
+
+.input-error {
+    border: 1px solid var(--senai-color-input-error);
 }

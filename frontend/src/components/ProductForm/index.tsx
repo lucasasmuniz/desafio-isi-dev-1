@@ -79,8 +79,8 @@ export default function ProductForm({ editing }: Props) {
         if (editing) {
             productService.findById(Number(params.productId))
                 .then((response) => {
-                    setProductDTO(response.data);
-                    setFormData(forms.updateAll(formData, response.data));
+                    setProductDTO(response.data)
+                    setFormData(forms.updateAll(formData, response.data))
                 })
         }
     }, [])
@@ -143,7 +143,6 @@ export default function ProductForm({ editing }: Props) {
                 navigate("/products");
             })
             .catch(error => {
-                console.log(error)
                 const newFormData = forms.setBackendErrors(formData, error.response.data.errors);
                 setFormData(newFormData);
 
