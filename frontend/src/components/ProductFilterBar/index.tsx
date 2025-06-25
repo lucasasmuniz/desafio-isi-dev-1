@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import searchIcon from '../../assets/search.svg';
 import ButtonPrimary from '../ButtonPrimary';
@@ -6,6 +5,7 @@ import ButtonPrimary from '../ButtonPrimary';
 import './styles.css';
 import { useNavigate } from 'react-router-dom';
 import ButtonSecondary from '../ButtonSecondary';
+import { parseCurrencyBRL, formatCurrencyInput } from '../../utils/prices';
 
 type Props = {
     onFiltering : Function;
@@ -26,7 +26,7 @@ export default function ProductFilterBar({onFiltering}: Props){
       return;
     }
     setUseFilter(true);
-    onFiltering(parseCurrencyBRL(minPrice), parseCurrencyBRL(maxPrice), text);
+    onFiltering(parseCurrencyBRL(minPrice) === "0.00"? "" : parseCurrencyBRL(minPrice), parseCurrencyBRL(maxPrice) === "0.00"? "" : parseCurrencyBRL(maxPrice), text);
   }
 
   function handleResetFilter(event: any){
@@ -40,7 +40,7 @@ export default function ProductFilterBar({onFiltering}: Props){
 
   function handleOnClickNewProduct(event: any){
     event.preventDefault();
-    navigate("create")
+    navigate("new")
   }
 
   function handleInputTextChange(event: any){
@@ -48,6 +48,10 @@ export default function ProductFilterBar({onFiltering}: Props){
   }
 
   function handlePriceChange(event: any) {
+      const numberPattern = /[0-9]+/;
+      if(!numberPattern.test(event.target.value)){
+          return;
+      }
     const rawValue = event.target.value;
     const name = event.target.name;
 
@@ -61,25 +65,6 @@ export default function ProductFilterBar({onFiltering}: Props){
     }
     event.target.value = formatted;
   }
-
-  function formatCurrencyInput(value: string): string {
-  const numericValue = value.replace(/\D/g, '');
-
-  const number = parseFloat(numericValue) / 100;
-
-  return number.toLocaleString('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-    minimumFractionDigits: 2
-  });
-}
-
-function parseCurrencyBRL(value: string): string {
-  return value
-    .replace(/[^\d,]/g, '')
-    .replace('.', '') 
-    .replace(',', '.');   
-}
 
   return (
     <form className="filter-bar mb-30">
