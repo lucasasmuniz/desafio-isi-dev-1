@@ -14,7 +14,7 @@ public class CouponFactory {
                 "promo",
                 CouponEnum.PERCENT,
                 BigDecimal.TEN,
-                true,
+                false,
                 null,
                 Instant.now().plus(1, ChronoUnit.DAYS),
                 Instant.now().plus(10, ChronoUnit.DAYS)
