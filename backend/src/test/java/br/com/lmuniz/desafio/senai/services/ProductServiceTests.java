@@ -9,6 +9,7 @@ import br.com.lmuniz.desafio.senai.repositories.CouponRepository;
 import br.com.lmuniz.desafio.senai.repositories.ProductCouponApplicationRepository;
 import br.com.lmuniz.desafio.senai.repositories.ProductDirectDiscountApplicationRepository;
 import br.com.lmuniz.desafio.senai.repositories.ProductRepository;
+import br.com.lmuniz.desafio.senai.services.exceptions.BusinessRuleException;
 import br.com.lmuniz.desafio.senai.services.exceptions.ResourceConflictException;
 import br.com.lmuniz.desafio.senai.services.exceptions.ResourceNotFoundException;
 import br.com.lmuniz.desafio.senai.tests.CouponFactory;
@@ -22,6 +23,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
+import java.time.Instant;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -89,7 +91,7 @@ public class ProductServiceTests {
     }
 
     @Test
-    @DisplayName("create product should throw ResourceNotFoundException when existing normalized name")
+    @DisplayName("create product should throw ResourceNotFoundException when normalized name exists")
     void createProduct_ShouldThrowResourceConflictException_WhenExistingNormalizedName() {
         ProductDTO dto = new ProductDTO(1L, existingNormalizedName,product.getDescription(), product.getStock(), product.getPrice());
         assertThrows(ResourceConflictException.class, () -> {
@@ -129,7 +131,7 @@ public class ProductServiceTests {
     }
 
     @Test
-    @DisplayName("product soft delete shoud throw ResourceNotFoundException when id do not exists")
+    @DisplayName("product soft delete shoud throw ResourceNotFoundException when id does not exists")
     void softDelete_ShouldThrowResourceNotFoundException_WhenIdDoNotExists(){
         assertThrows(ResourceNotFoundException.class, () -> {
             productService.softDeleteProduct(nonExistingId);
@@ -140,11 +142,45 @@ public class ProductServiceTests {
     }
 
     @Test
-    @DisplayName("product soft delete shoud do nothing when id exists and has not discounts")
+    @DisplayName("product soft delete shoud do nothing when id exists and has no discounts")
     void softDelete_ShouldDoNothing_WhenIdExistsAndHasNoDiscounts(){
         productService.softDeleteProduct(existingId);
 
         verify(productRepository, times(1)).findById(existingId);
         verify(productRepository, times(1)).save(any(Product.class));
     }
+
+    @Test
+    @DisplayName("restore product should return product when id exists and product is soft deleted")
+    void restoreProduct_ShouldReturnProduct_WhenIdExistsAndProductIsSoftDeleted(){
+        product.setDeletedAt(Instant.now());
+        when(productRepository.findById(existingId)).thenReturn(Optional.of(product));
+
+        ProductDTO result = productService.restoreProduct(existingId);
+
+        assertNotNull(result);
+        assertEquals(existingId, result.id());
+        assertEquals(product.getDescription(), result.description());
+    }
+
+    @Test
+    @DisplayName("restore product should throw ResourceNotFoundException when id does not exists")
+    void restoreProduct_ShouldThrowResourceNotFoundException_WhenIdDoesNotExists(){
+        assertThrows(ResourceNotFoundException.class, () -> {
+            productService.restoreProduct(nonExistingId);
+        });
+
+        verify(productRepository, times(1)).findById(nonExistingId);
+    }
+
+    @Test
+    @DisplayName("restore product should throw BusinessRuleException when id exists and product not deleted")
+    void restoreProduct_ShouldThrowBusinessRuleException_WhenIdExistsAndProductNotDeleted(){
+        assertThrows(BusinessRuleException.class, () -> {
+            productService.restoreProduct(existingId);
+        });
+
+        verify(productRepository, times(1)).findById(existingId);
+    }
+
 }
