@@ -8,11 +8,15 @@ export function findPageRequest(
   maxPrice: string,
   search: string,
   size: number = 10,
-  sort: string = "price"
+  sort: string = "price",
+  page:number,
+  hasDiscount: boolean
 ) {
   const params: any = {
     size,
     sort,
+    page,
+    hasDiscount,
     ...(minPrice && { minPrice }),
     ...(maxPrice && { maxPrice }),
     ...(search && { search }),

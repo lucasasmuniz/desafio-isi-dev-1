@@ -4,15 +4,17 @@ import ProductFilterBar from '../../components/ProductFilterBar';
 import ProductTable from '../../components/ProductTable';
 import type { ProductDiscountDTO } from "../../models/product";
 import * as productService from '../../service/product-service';
-
+import './styles.css';
 import { useEffect, useState } from 'react';
+import ButtonPrimary from '../../components/ButtonPrimary';
 
 
 type QueryParams = {
   minPrice: string,
   maxPrice: string,
   searchText: string,
-  page: number
+  page: number,
+  hasDiscount: boolean
 }
 
 export default function ProductsCatalog() {
@@ -24,11 +26,12 @@ export default function ProductsCatalog() {
     minPrice: '',
     maxPrice: '',
     searchText: '',
-    page: 0
+    page: 0,
+    hasDiscount: false
   })
 
   useEffect(() => {
-    productService.findPageRequest(queryParams.minPrice, queryParams.maxPrice, queryParams.searchText, 12, "name")
+    productService.findPageRequest(queryParams.minPrice, queryParams.maxPrice, queryParams.searchText, 6, "name", queryParams.page, queryParams.hasDiscount)
       .then((response) => {
         const nextPage = response.data.content
         setProducts(products.concat(nextPage));
@@ -36,16 +39,16 @@ export default function ProductsCatalog() {
       })
   }, [queryParams]);
 
-  function handlerFiltering(minPrice: string, maxPrice: string, searchText: string) {
+  function handlerFiltering(minPrice: string, maxPrice: string, searchText: string, hasDiscount:boolean) {
     setProducts([]);
-    setQueryParams({ ...queryParams, searchText, maxPrice, minPrice, page: 0 })
+    setQueryParams({ ...queryParams, searchText, maxPrice, minPrice, page: 0 ,hasDiscount})
   }
 
   function handleNextPageClick() {
     setQueryParams({ ...queryParams, page: queryParams.page + 1 })
   }
 
-  function handleResetParams(){
+  function handleResetParams() {
     setProducts([]);
     setQueryParams({ ...queryParams, page: 0 })
   }
@@ -71,14 +74,21 @@ export default function ProductsCatalog() {
             </tr>
           </thead>
           <tbody>
-              {
-                products.map(product => [
-                  <ProductTable product={product} key={product.id} onClick={handleResetParams}/>
-                ])
-              }
+            {
+              products.map(product => [
+                <ProductTable product={product} key={product.id} onClick={handleResetParams} />
+              ])
+            }
           </tbody>
         </table>
       </div>
+      {
+        !isLastPage &&
+        <div onClick={handleNextPageClick} className='catalog-btn'>
+          <ButtonPrimary text={"Próxima página"} />
+        </div>
+      }
+
     </>
 
   );
