@@ -1,11 +1,28 @@
 # Desafio Técnico Fullstack - Backend (Instituto SENAI de Inovação)
 
-Este repositório contém a implementação para o [desafio técnico da vaga de Desenvolvedor Fullstack Júnior](https://github.com/isi-tics/desafio-isi-dev-1). O backend da aplicação foi desenvolvido em Java com Spring Boot, e o frontend foi desenvolvido com Typescript e React. A aplicação simula um fluxo básico de vendas, focando no gerenciamento de produtos e na aplicação de descontos com regras de negócio complexas.
+Este repositório contém a implementação para o [desafio técnico da vaga de Desenvolvedor Fullstack Júnior](https://github.com/isi-tics/desafio-isi-dev-1). O [backend](#inicio-backend) da aplicação foi desenvolvido em Java com Spring Boot, e o [frontend](#inicio-frontend) foi desenvolvido com Typescript e React. A aplicação simula um fluxo básico de vendas, focando no gerenciamento de produtos e na aplicação de descontos com regras de negócio complexas.
 
+## Execução com Docker
 
-## Backend
+O projeto está containerizado com Docker.
 
-### 1. Tecnologias Utilizadas
+### Pré-requisitos
+- Docker
+- Docker Compose
+
+### Passos para Executar
+
+1.  Na raiz do projeto, execute o comando para construir as imagens e subir os contêineres:
+    ```bash
+    docker-compose up -d --build
+    ```
+2.  Aguarde o processo de build ser finalizado.
+3.  Acesse o frontend em `http://localhost:5173`.
+4.  Acesse a API do backend em `http://localhost:8080`.
+
+<h2 id="inicio-backend">Backend</h2>
+
+### Tecnologias Utilizadas
 
 - **Java 21**: Versão LTS mais recente da linguagem.
 - **Spring Boot 3.5**: Framework principal para construção da aplicação.
@@ -19,7 +36,7 @@ Este repositório contém a implementação para o [desafio técnico da vaga de 
 - **JUnit 5 & Mockito**: Para a suíte de testes unitários da camada de serviço.
 - **JaCoCo**: Para uma cobertura de testes completa.
 
-### 2. Setup e Execução (Como Rodar o Projeto)
+### Setup e Execução (Como Rodar o Projeto)
 
 #### Pré-requisitos
 - **Java JDK 21** (ou superior)
@@ -53,7 +70,7 @@ No diretório do projeto, foi disponibilizado a collection e o arquivo das vari�
 #### Seed de Dados
 O projeto utiliza um arquivo data.sql para popular o banco de dados na inicialização, criando 10 produtos e 15 cupons para facilitar testes e demonstrações.
 
-### 3. Estrutura do Projeto
+### Estrutura do Projeto
 
 O projeto segue uma arquitetura em camadas.
 
@@ -76,7 +93,7 @@ O projeto segue uma arquitetura em camadas.
     └── utils/              # Classes utilitárias (ex: normalização do Strings)
 ```
 
-### 4. Decisões Técnicas e Arquitetura
+### Decisões Técnicas e Arquitetura
 
 Durante o desenvolvimento, algumas decisões de arquitetura foram tomadas para atender aos requisitos e garantir a qualidade do código:
 
@@ -90,7 +107,7 @@ Durante o desenvolvimento, algumas decisões de arquitetura foram tomadas para a
 
 * **Filtragem de Cupons Válidos:** O endpoint `GET /coupons` foi desenvolvido com um parâmetro opcional `?onlyValid=true` para permitir que o cliente da API liste apenas os cupons que estão dentro do período de validade e que ainda possuem usos disponíveis.
 
-### 5. Documentação da API (Endpoints)
+### Documentação da API (Endpoints)
 
 A API está disponível no base path `/api/v1`.
 
@@ -254,3 +271,106 @@ Resposta
     "empty": false
 }
 ```
+
+#### Dificuldades encontradas:
+* Acabei demorando um pouco nos endpoints de `PATCH`, por conta de sempre estar trabalhando com `PUT`. O `PATCH` é um pouco mais trabalhoso do que o `PUT`, porque não temos o auxilio de ferramentas como o `jakarta validation`, então temos que fazer todas as validações na mão.
+* Por conta desse problema com o tempo não consegui realizar os testes unitários e de integração por completo.
+
+<h2 id="inicio-frontend">Frontend</h2>
+
+### Screenshots
+
+#### Tela principal
+![Image](https://github.com/user-attachments/assets/9850be5c-1e7f-4942-aa12-055ffaeeaaca)
+
+#### Tela principal (Filtro por texto e por produtos com desconto)
+![Image](https://github.com/user-attachments/assets/9902770f-6330-43e2-bc95-48464ac082b0)
+
+#### Tela de cadastro (Tratamento de exceções)
+![Image](https://github.com/user-attachments/assets/8726e0d4-e904-462f-8966-39e786fa0feb)
+
+#### Dialog de desconto direto
+![Image](https://github.com/user-attachments/assets/52301600-0a9e-417e-a132-3820284a1580)
+
+#### Dialog de cupom de desconto
+![Image](https://github.com/user-attachments/assets/1b15fe6c-d324-4fee-8e70-e095deca61e4)
+
+### Tecnologias Utilizadas
+
+-   **React 18+**: Biblioteca principal para o desenvolvimento da interface.
+-   **TypeScript**: Por conta da tipagem estática.
+-   **Vite**: Ambiente de desenvolvimento rápido e fácil de mexer.
+-   **React Router DOM**: Para o gerenciamento de rotas e navegação (client-side routing).
+-   **Axios**: Para realizar as chamadas HTTP para a API backend de forma organizada.
+-   **CSS Puros / Módulos CSS**: Para estilização.
+
+### Setup e Execução Local
+
+##### Pré-requisitos
+
+-   **Node.js v20.x** (ou superior)
+-   **Yarn**
+
+##### Passos para Rodar
+
+1.  **Clone o repositório** (caso ainda não tenha feito).
+
+2.  **Navegue até a pasta do frontend:**
+    ```bash
+    cd senai-isi-challenge/frontend
+    ```
+
+3.  **Instale as dependências:**
+    ```bash
+    yarn install
+    ```
+
+4.  **Execute a aplicação em modo de desenvolvimento:**
+    ```bash
+    yarn dev
+    ```
+
+A aplicação estará em `http://localhost:5173`.
+
+##### Variáveis de Ambiente
+
+Para que o frontend consiga se comunicar com o backend, crie um arquivo `.env` na raiz da pasta `frontend/` com base no `.env.example` fornecido no diretório.
+
+**`.env.example`**
+```
+VITE_BACKEND_URL=
+```
+
+**`.env` (Exemplo de preenchimento)**
+```
+VITE_BACKEND_URL=http://localhost:8080
+```
+
+### Estrutura do Projeto
+
+O projeto segue uma arquitetura componentizada,
+
+```
+/src
+├── assets/      # Armazena arquivos estáticos como os ícones SVG utilizados na interface.
+├── components/  # Contém componentes de UI genéricos e reutilizáveis (ex: Button, Input, PageHeader).
+├── models/      # Define as interfaces e tipos TypeScript que representam os DTOs e modelos de dados.
+├── routes/      # Contém os componentes que funcionam como as páginas principais da aplicação (ex: ProductsCatalog).
+├── service/     # Centraliza a lógica de comunicação com a API backend, utilizando uma instância do Axios.
+└── utils/       # Agrupa funções utilitárias, como métodos de formatação, validações e constantes do sistema.
+```
+
+### Decisões de Arquitetura e Design
+
+* **Comunicação com API:** As chamadas à API foram centralizadas em um módulo (`/api`) que utiliza uma instância pré-configurada do `axios`. Isso facilita a manutenção, a adição de interceptors (para tratamento de token ou erros) e evita a repetição da URL base do backend no código.
+
+* **Roteamento com Layout Persistente:** Foi utilizado o `react-router-dom` para criar um sistema de rotas aninhadas. Um componente `Layout` central renderiza a `Sidebar` e o `Header` de forma persistente, enquanto o componente `<Outlet />` renderiza dinamicamente o conteúdo da página atual, uma abordagem moderna e eficiente para SPAs.
+
+* **Melhoria de Usabilidade (UX) na Deleção de Produtos e Descontos:** Ao meu ver, o fluxo, que entendi pelo mockup, para inativar um produto e remover um desconto poderia causar confusão no usuário. Para criar uma experiência de usuário mais clara e segura, repensei a funcionalidade:
+
+1. A ação principal de inativar o produto foi mantida no ícone de lixeira na tabela, um padrão de mercado facilmente reconhecível.
+
+2. A ação secundária de remover um desconto foi tornada mais contextual. O usuário agora passa o mouse sobre o "badge" do desconto, que se transforma em um botão de remoção. Isso torna a ação intencional e evita que um desconto seja removido por engano.
+
+### Dificuldades encontradas:
+* No frontend tive muito problema com tempo, sinto que poderia ter feito uma arquitetura de componentes reutilizáveis melhor.
