@@ -83,7 +83,7 @@ export default function ProductForm({ editing }: Props) {
                     setFormData(forms.updateAll(formData, response.data))
                 })
         }
-    }, [])
+    }, [productId])
 
     function handleCancel(event: any) {
         event.preventDefault();

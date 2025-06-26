@@ -16,7 +16,7 @@ export function findPageRequest(
     size,
     sort,
     page,
-    hasDiscount,
+    ...(hasDiscount && { hasDiscount }),
     ...(minPrice && { minPrice }),
     ...(maxPrice && { maxPrice }),
     ...(search && { search }),
