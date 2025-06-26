@@ -105,7 +105,7 @@ export default function ProductForm({ editing }: Props) {
             setFormData(forms.updateAndValidate(formData, event.target.name, event.target.value));
 
         } else if (event.target.name === "stock") {
-            const numberPattern = /^[0-9]+$/;
+            const numberPattern = /^[0-9]*$/;
             if (!numberPattern.test(event.target.value)) {
                 return;
             }

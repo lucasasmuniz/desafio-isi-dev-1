@@ -24,7 +24,7 @@ export function findPageRequest(
 
   const config: AxiosRequestConfig = {
     method: "GET",
-    url: "/api/v1/products",
+    url: "/products",
     params,
   };
 
@@ -32,13 +32,13 @@ export function findPageRequest(
 }
 
 export function findById(id: number) {
-  return backendRequest({ url: `/api/v1/products/${id}`, method: "GET" });
+  return backendRequest({ url: `/products/${id}`, method: "GET" });
 }
 
 export function deleteById(id: number) {
   const config: AxiosRequestConfig = {
     method: "DELETE",
-    url: `/api/v1/products/${id}`,
+    url: `/products/${id}`,
   };
 
   return backendRequest(config);
@@ -47,7 +47,7 @@ export function deleteById(id: number) {
 export function removeDiscountFromProduct(id: number) {
   const config: AxiosRequestConfig = {
     method: "DELETE",
-    url: `/api/v1/products/${id}/discount`,
+    url: `/products/${id}/discount`,
   };
 
   return backendRequest(config);
@@ -56,7 +56,7 @@ export function removeDiscountFromProduct(id: number) {
 export function updateProduct(jsonPatch: JsonPatchOp[], id: number) {
   const config: AxiosRequestConfig = {
     method: "PATCH",
-    url: `/api/v1/products/${id}`,
+    url: `/products/${id}`,
     data: jsonPatch,
     headers: {
     'Content-Type': 'application/json-patch+json'
@@ -69,7 +69,7 @@ export function updateProduct(jsonPatch: JsonPatchOp[], id: number) {
 export function saveProduct(product: ProductDTO) {
   const config: AxiosRequestConfig = {
     method: "POST",
-    url: `/api/v1/products`,
+    url: `/products`,
     data:product
   };
   return backendRequest(config);
@@ -79,7 +79,7 @@ export function applyCouponToProduct(productId: number, code:string) {
   const data = { code };
   const config: AxiosRequestConfig = {
     method: "POST",
-    url: `/api/v1/products/${productId}/discount/coupon`,
+    url: `/products/${productId}/discount/coupon`,
     data:data
   };
   return backendRequest(config);
@@ -89,7 +89,7 @@ export function applyDirectDiscountToProduct(productId: number, percentage:numbe
   const data = { percentage };
   const config: AxiosRequestConfig = {
     method: "POST",
-    url: `/api/v1/products/${productId}/discount/percent`,
+    url: `/products/${productId}/discount/percent`,
     data:data
   };
   return backendRequest(config);
