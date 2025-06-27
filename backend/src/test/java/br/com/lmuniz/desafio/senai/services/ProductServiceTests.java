@@ -183,4 +183,28 @@ public class ProductServiceTests {
         verify(productRepository, times(1)).findById(existingId);
     }
 
+    @Test
+    @DisplayName("find by id should return product when id exists")
+    void findById_ShouldReturnProduct_WhenIdExists() {
+        ProductDTO result = productService.getProductById(existingId);
+
+        assertNotNull(result);
+        assertEquals(existingId, result.id());
+        assertEquals(product.getName(), result.name());
+        assertEquals(product.getDescription(), result.description());
+        assertEquals(product.getStock(), result.stock());
+        assertEquals(product.getPrice(), result.price());
+
+        verify(productRepository, times(1)).findById(existingId);
+    }
+
+    @Test
+    @DisplayName("find by id should throw ResourceNotFoundException when id does not exists")
+    void findById_ShouldThrowResourceNotFoundException_WhenIdDoesNotExists() {
+        assertThrows(ResourceNotFoundException.class, () -> {
+            productService.getProductById(nonExistingId);
+        });
+
+        verify(productRepository, times(1)).findById(nonExistingId);
+    }
 }
