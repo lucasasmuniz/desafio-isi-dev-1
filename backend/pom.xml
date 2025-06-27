@@ -86,6 +86,7 @@
 						<exclude>br/com/lmuniz/desafio/senai/services/exceptions/**</exclude>
 						<exclude>br/com/lmuniz/desafio/senai/utils/**</exclude>
 						<exclude>br/com/lmuniz/desafio/senai/repositories/**</exclude>
+						<exclude>br/com/lmuniz/desafio/senai/config/**</exclude>
 					</excludes>
 				</configuration>
 				<executions>

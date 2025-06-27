@@ -1,15 +1,19 @@
 package br.com.lmuniz.desafio.senai.services;
 
+import br.com.lmuniz.desafio.senai.domains.dtos.coupons.CouponCodeDTO;
 import br.com.lmuniz.desafio.senai.domains.dtos.products.ProductDTO;
+import br.com.lmuniz.desafio.senai.domains.dtos.products.ProductDiscountDTO;
 import br.com.lmuniz.desafio.senai.domains.entities.Coupon;
 import br.com.lmuniz.desafio.senai.domains.entities.Product;
 import br.com.lmuniz.desafio.senai.domains.entities.ProductCouponApplication;
 import br.com.lmuniz.desafio.senai.domains.entities.ProductDirectDiscountApplication;
+import br.com.lmuniz.desafio.senai.domains.enums.CouponEnum;
 import br.com.lmuniz.desafio.senai.repositories.CouponRepository;
 import br.com.lmuniz.desafio.senai.repositories.ProductCouponApplicationRepository;
 import br.com.lmuniz.desafio.senai.repositories.ProductDirectDiscountApplicationRepository;
 import br.com.lmuniz.desafio.senai.repositories.ProductRepository;
 import br.com.lmuniz.desafio.senai.services.exceptions.BusinessRuleException;
+import br.com.lmuniz.desafio.senai.services.exceptions.InvalidPriceException;
 import br.com.lmuniz.desafio.senai.services.exceptions.ResourceConflictException;
 import br.com.lmuniz.desafio.senai.services.exceptions.ResourceNotFoundException;
 import br.com.lmuniz.desafio.senai.tests.CouponFactory;
@@ -19,12 +23,19 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
+import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Optional;
+import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -50,6 +61,8 @@ public class ProductServiceTests {
 
     private String nonExistingNormalizedName;
     private String existingNormalizedName;
+    private String couponValidNormalizedCode = "promo";
+    private String couponInvalidNormalizedCode = "invalid";
     private Long existingId;
     private Long nonExistingId;
     private Product product;
@@ -74,6 +87,9 @@ public class ProductServiceTests {
         when(productRepository.save(any())).thenReturn(product);
         when(productRepository.findById(existingId)).thenReturn(Optional.of(product));
         when(productRepository.findById(nonExistingId)).thenReturn(Optional.empty());
+        when(couponRepository.findByCode(couponValidNormalizedCode)).thenReturn(coupon);
+        when(couponRepository.findByCode(couponInvalidNormalizedCode)).thenReturn(null);
+        when(productCouponApplicationRepository.save(any())).thenReturn(productCouponApplication);
     }
 
     @Test
@@ -206,5 +222,153 @@ public class ProductServiceTests {
         });
 
         verify(productRepository, times(1)).findById(nonExistingId);
+    }
+
+    @Test
+    @DisplayName("apply coupon discount should throw ResourceNotFoundException when coupon normalized name does not exist")
+    void applyCouponDiscount_ShouldThrowResouceNotFoundException_WhenCouponNormalizedNameDoesNotExists() {
+        CouponCodeDTO couponCodeDTO = new CouponCodeDTO(couponInvalidNormalizedCode);
+        assertThrows(ResourceNotFoundException.class, () -> {
+            productService.applyCouponDiscount(existingId, couponCodeDTO);
+        });
+
+        verify(couponRepository, times(1)).findByCode(couponInvalidNormalizedCode);
+        verify(productRepository, never()).findById(existingId);
+    }
+
+    @Test
+    @DisplayName("apply coupon discount should throw ResourceNotFoundException when product id does not exist")
+    void applyCouponDiscount_ShouldThrowResouceNotFoundException_WhenProductIdDoesNotExists() {
+        CouponCodeDTO couponCodeDTO = new CouponCodeDTO(couponValidNormalizedCode);
+        assertThrows(ResourceNotFoundException.class, () -> {
+            productService.applyCouponDiscount(nonExistingId, couponCodeDTO);
+        });
+
+        verify(productRepository, times(1)).findById(nonExistingId);
+        verify(couponRepository, times(1)).findByCode(couponValidNormalizedCode);
+        verify(couponRepository, never()).save(coupon);
+        verify(productCouponApplicationRepository, never()).save(productCouponApplication);
+    }
+
+    @Test
+    @DisplayName("apply coupon discount should throw InvalidPriceException when final price is invalid")
+    void applyCouponDiscount_ShouldThrowInvalidPriceException_WhenFinalPriceInvalid() {
+        CouponCodeDTO couponCodeDTO = new CouponCodeDTO(couponValidNormalizedCode);
+        coupon.setType(CouponEnum.FIXED);
+        coupon.setValue(BigDecimal.valueOf(10000));
+        when(couponRepository.findByCode(couponValidNormalizedCode)).thenReturn(coupon);
+
+        assertThrows(InvalidPriceException.class, () -> {
+            productService.applyCouponDiscount(existingId, couponCodeDTO);
+        });
+
+        verify(productRepository, times(1)).findById(existingId);
+        verify(couponRepository, times(1)).findByCode(couponValidNormalizedCode);
+        verify(couponRepository, never()).save(coupon);
+        verify(productCouponApplicationRepository, never()).save(productCouponApplication);
+    }
+
+    @Test
+    @DisplayName("apply coupon discount should throw ResourceConflictException when coupon is one shot and has already been taken")
+    void applyCouponDiscount_ShouldResourceConflictException_WhenCouponOneShotAndAlreadyTaken() {
+        CouponCodeDTO couponCodeDTO = new CouponCodeDTO(couponValidNormalizedCode);
+        coupon.setOneShot(true);
+        coupon.setUsesCount(1);
+        when(couponRepository.findByCode(couponValidNormalizedCode)).thenReturn(coupon);
+
+        assertThrows(ResourceConflictException.class, () -> {
+            productService.applyCouponDiscount(existingId, couponCodeDTO);
+        });
+
+        verify(productRepository, never()).findById(existingId);
+        verify(couponRepository, times(1)).findByCode(couponValidNormalizedCode);
+    }
+
+    @ParameterizedTest(name = "applyCouponDiscount should throw BusinessRuleException {0}")
+    @MethodSource("provideInvalidCouponScenarios")
+    @DisplayName("applyCouponDiscount should throw exception for invalid coupon states")
+    void applyCouponDiscount_shouldThrowBusinessRuleException_forInvalidCouponStates(String scenarioName, Consumer<Coupon> couponSetup) {
+        Coupon testCoupon = this.coupon;
+
+        couponSetup.accept(testCoupon);
+
+        CouponCodeDTO couponCodeDTO = new CouponCodeDTO(testCoupon.getCode());
+        when(couponRepository.findByCode(testCoupon.getCode())).thenReturn(testCoupon);
+
+        assertThrows(BusinessRuleException.class, () -> {
+            productService.applyCouponDiscount(existingId, couponCodeDTO);
+        });
+
+        verify(productRepository, never()).findById(anyLong());
+        verify(couponRepository, times(1)).findByCode(testCoupon.getCode());
+    }
+
+    private static Stream<Arguments> provideInvalidCouponScenarios() {
+        return Stream.of(
+                Arguments.of(
+                        "when coupon is soft-deleted",
+                        (Consumer<Coupon>) coupon -> coupon.setDeletedAt(Instant.now())
+                ),
+                Arguments.of(
+                        "when coupon usage limit is reached",
+                        (Consumer<Coupon>) coupon -> {
+                            coupon.setMaxUses(10);
+                            coupon.setUsesCount(10);
+                        }
+                ),
+                Arguments.of(
+                        "when coupon is expired",
+                        (Consumer<Coupon>) coupon -> {
+                            coupon.setValidUntil(Instant.now().minus(5, ChronoUnit.DAYS));
+                        }
+                ),
+                Arguments.of(
+                        "when coupon is not yet valid",
+                        (Consumer<Coupon>) coupon -> {
+                            coupon.setValidFrom(Instant.now().plus(5, ChronoUnit.DAYS));
+                        }
+                )
+        );
+    }
+
+    @ParameterizedTest(name = "applyCouponDiscount should apply discount successfully {0}")
+    @MethodSource("provideValidCouponScenarios")
+    @DisplayName("applyCouponDiscount should return product dto for valid coupon and product states")
+    void applyCouponDiscount_ShouldApplyCouponDiscount_WhenProductAndCouponAndProductHasNoDiscount(String scenarioName, Consumer<Coupon> couponSetup) {
+        when(productCouponApplicationRepository.findByProductIdAndRemovedAtIsNull(existingId)).thenReturn(null);
+        when(productDirectDiscountApplicationRepository.findByProductIdAndRemovedAtIsNull(existingId)).thenReturn(null);
+        Coupon testCoupon = this.coupon;
+
+        couponSetup.accept(testCoupon);
+
+        CouponCodeDTO couponCodeDTO = new CouponCodeDTO(coupon.getCode());
+        when(couponRepository.findByCode(couponCodeDTO.code())).thenReturn(testCoupon);
+
+        ProductDiscountDTO result = assertDoesNotThrow(() -> {
+            return productService.applyCouponDiscount(existingId, couponCodeDTO);
+        });
+        assertNotNull(result);
+        assertNotNull(result.discount());
+        assertEquals(existingId, result.id());
+        assertEquals(coupon.getValue(), result.discount().value());
+    }
+
+    private static Stream<Arguments> provideValidCouponScenarios() {
+        return Stream.of(
+                Arguments.of(
+                        "when coupon has max uses and uses count is less than max uses",
+                        (Consumer<Coupon>) coupon -> {
+                            coupon.setMaxUses(5);
+                            coupon.setUsesCount(0);
+                        }
+                ),
+                Arguments.of(
+                        "when one shot coupon is not used",
+                        (Consumer<Coupon>) coupon -> {
+                            coupon.setOneShot(true);
+                            coupon.setUsesCount(0);
+                        }
+                )
+        );
     }
 }

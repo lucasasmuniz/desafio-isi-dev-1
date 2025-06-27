@@ -16,7 +16,7 @@ public class CouponFactory {
                 BigDecimal.TEN,
                 false,
                 null,
-                Instant.now().plus(1, ChronoUnit.DAYS),
+                Instant.now().minus(10, ChronoUnit.DAYS),
                 Instant.now().plus(10, ChronoUnit.DAYS)
         );
     }
