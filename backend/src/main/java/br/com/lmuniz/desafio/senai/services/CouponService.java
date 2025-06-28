@@ -186,6 +186,11 @@ public class CouponService {
             errors.put("oneShot", "One-shot coupons that have been used cannot be modified");
         }
 
+        if (entity.getType() == CouponEnum.UNKNOWN) {
+            errors.put("type", "Invalid value. Must be 'percent' or 'fixed'.");
+            return;
+        }
+
         if (entity.getType() != null && entity.getValue() != null) {
             CouponEnum type = entity.getType();
             if (type == CouponEnum.PERCENT) {

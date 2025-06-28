@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 
 public enum CouponEnum {
     PERCENT("percent"),
+    UNKNOWN("unknown"),
     FIXED("fixed");
 
     private final String type;
@@ -17,16 +18,13 @@ public enum CouponEnum {
     }
 
     @JsonCreator
-    public static CouponEnum fromString(String value) {
-        if (value == null) {
-            return null;
-        }
-        for (CouponEnum couponEnum : CouponEnum.values()) {
-            if (couponEnum.getTypeValue().equalsIgnoreCase(value)) {
-                return couponEnum;
+    public static CouponEnum fromString(String text) {
+        for (CouponEnum type : CouponEnum.values()) {
+            if (type.name().equalsIgnoreCase(text)) {
+                return type;
             }
         }
-        throw new IllegalArgumentException("Invalid coupon type: " + value);
+        return UNKNOWN;
     }
 
     @Override
