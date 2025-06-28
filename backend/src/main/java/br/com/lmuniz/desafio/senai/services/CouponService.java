@@ -98,45 +98,40 @@ public class CouponService {
 
     @Transactional
     public CouponDetailsDTO partialUpdateCoupon(Long id, JsonPatch patch) {
-        CouponDTO patchedCoupon;
         Coupon entity = couponRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Coupon with ID " + id + " not found"));
-        try {
-            JsonNode originalNode = objectMapper.valueToTree(entity);
+                .orElseThrow(() -> new ResourceNotFoundException("Coupon with ID " + id + " not found."));
 
-            JsonNode patchedNode = patch.apply(originalNode);
-            patchedCoupon = objectMapper.treeToValue(patchedNode, CouponDTO.class);
-
-        } catch (JsonProcessingException | JsonPatchException e) {
-            throw new BusinessRuleException(e.getMessage());
-        }
         BigDecimal previousValue = entity.getValue();
         CouponEnum previousType = entity.getType();
 
-        BigDecimal actualValue = patchedCoupon.type() != null ? patchedCoupon.value().setScale(2, RoundingMode.HALF_UP) : null;
-        CouponEnum actualType =patchedCoupon.type() != null ? CouponEnum.valueOf(patchedCoupon.type().toUpperCase()) : null;
+        Coupon entityToValidate;
+        try {
+            JsonNode patchedNode = patch.apply(objectMapper.valueToTree(entity));
+            entityToValidate = objectMapper.treeToValue(patchedNode, Coupon.class);
+        } catch (JsonProcessingException | JsonPatchException e) {
+            throw new BusinessRuleException(e.getMessage());
+        }
 
         Map<String, String> errors = new HashMap<>();
-
-        entity.setType(actualType);
-        entity.setValue(actualValue);
-        entity.setOneShot(patchedCoupon.oneShot());
-        entity.setMaxUses(patchedCoupon.maxUses());
-        entity.setValidFrom(patchedCoupon.validFrom());
-        entity.setValidUntil(patchedCoupon.validUntil());
-
-        validateCoupon(entity, errors);
+        validateCoupon(entityToValidate, errors);
 
         if (!errors.isEmpty()) {
             throw new BusinessRuleException(errors);
         }
+
+        entity.setType(entityToValidate.getType());
+        entity.setValue(entityToValidate.getValue().setScale(2, RoundingMode.DOWN));
+        entity.setOneShot(entityToValidate.getOneShot());
+        entity.setMaxUses(entityToValidate.getMaxUses());
+        entity.setValidFrom(entityToValidate.getValidFrom());
+        entity.setValidUntil(entityToValidate.getValidUntil());
 
         if (!previousValue.equals(entity.getValue()) || !previousType.equals(entity.getType())) {
             int removedCount = productCouponApplicationRepository.removeActiveApplicationsByCouponId(id, Instant.now());
             if (entity.getUsesCount() >= removedCount) {
                 entity.setUsesCount(entity.getUsesCount() - removedCount);
             } else {
-                throw new DatabaseException("Cannot update coupon value, as it would result in a negative usage count. Current uses: " + entity.getUsesCount() + ", removed applications: " + removedCount);
+                throw new DatabaseException("Cannot update coupon, would result in negative usage count.");
             }
         }
 
