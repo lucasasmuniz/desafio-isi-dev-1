@@ -1,6 +1,7 @@
 package br.com.lmuniz.desafio.senai.services;
 
 import br.com.lmuniz.desafio.senai.domains.dtos.coupons.CouponCodeDTO;
+import br.com.lmuniz.desafio.senai.domains.dtos.discounts.DirectPercentageDiscountDTO;
 import br.com.lmuniz.desafio.senai.domains.dtos.products.ProductDTO;
 import br.com.lmuniz.desafio.senai.domains.dtos.products.ProductDiscountDTO;
 import br.com.lmuniz.desafio.senai.domains.entities.Coupon;
@@ -84,12 +85,13 @@ public class ProductServiceTests {
 
         when(productRepository.existsByNormalizedName(nonExistingNormalizedName)).thenReturn(false);
         when(productRepository.existsByNormalizedName(existingNormalizedName)).thenReturn(true);
-        when(productRepository.save(any())).thenReturn(product);
+        when(productRepository.save(any(Product.class))).thenReturn(product);
         when(productRepository.findById(existingId)).thenReturn(Optional.of(product));
         when(productRepository.findById(nonExistingId)).thenReturn(Optional.empty());
         when(couponRepository.findByCode(couponValidNormalizedCode)).thenReturn(coupon);
         when(couponRepository.findByCode(couponInvalidNormalizedCode)).thenReturn(null);
-        when(productCouponApplicationRepository.save(any())).thenReturn(productCouponApplication);
+        when(productCouponApplicationRepository.save(any(ProductCouponApplication.class))).thenReturn(productCouponApplication);
+        when(productDirectDiscountApplicationRepository.save(any(ProductDirectDiscountApplication.class))).thenReturn(productDirectDiscountApplication);
     }
 
     @Test
@@ -370,5 +372,91 @@ public class ProductServiceTests {
                         }
                 )
         );
+    }
+
+    @Test
+    @DisplayName("apply direct discount should throw ResourceConflictException when product id does not exist")
+    void applyDirectDiscount_ShouldThrowResourceNotFoundException_WhenProductIdDoesNotExist() {
+        DirectPercentageDiscountDTO directPercentageDiscountDTO = new DirectPercentageDiscountDTO(BigDecimal.TEN);
+        assertThrows(ResourceNotFoundException.class, () -> {
+            productService.applyDirectPercentDiscount(nonExistingId, directPercentageDiscountDTO);
+        });
+
+        verify(productRepository, times(1)).findById(nonExistingId);
+    }
+
+    @Test
+    @DisplayName("apply direct discount should throw InvalidPriceException when final price is invalid")
+    void applyDirectDiscount_ShouldThrowInvalidPriceException_WhenFinalPriceInvalid() {
+        DirectPercentageDiscountDTO directPercentageDiscountDTO = new DirectPercentageDiscountDTO(BigDecimal.valueOf(70));
+        product.setPrice(BigDecimal.valueOf(0.01));
+        when(productRepository.findById(existingId)).thenReturn(Optional.of(product));
+
+        assertThrows(InvalidPriceException.class, () -> {
+            productService.applyDirectPercentDiscount(existingId, directPercentageDiscountDTO);
+        });
+
+        verify(productRepository, times(1)).findById(existingId);
+    }
+
+    @Test
+    @DisplayName("apply direct discount should throw ResourceConflictException when product is deleted")
+    void applyDirectDiscount_ShouldThrowBusinessRuleException_WhenProductDeleted(){
+        DirectPercentageDiscountDTO directPercentageDiscountDTO = new DirectPercentageDiscountDTO(BigDecimal.valueOf(70));
+        product.setDeletedAt(Instant.now());
+        when(productRepository.findById(existingId)).thenReturn(Optional.of(product));
+
+        assertThrows(BusinessRuleException.class, () -> {
+            productService.applyDirectPercentDiscount(existingId, directPercentageDiscountDTO);
+        });
+
+        verify(productRepository, times(1)).findById(existingId);
+    }
+
+    @Test
+    @DisplayName("apply direct discount should throw ResourceConflictException when product already has direct discount")
+    void applyDirectDiscount_ShouldThrowResourceConflictException_WhenProductAlreadyHasDirectDiscount() {
+        DirectPercentageDiscountDTO directPercentageDiscountDTO = new DirectPercentageDiscountDTO(BigDecimal.valueOf(10));
+        when(productDirectDiscountApplicationRepository.findByProductIdAndRemovedAtIsNull(existingId)).thenReturn(productDirectDiscountApplication);
+        when(productRepository.findById(existingId)).thenReturn(Optional.of(product));
+
+        assertThrows(ResourceConflictException.class, () -> {
+            productService.applyDirectPercentDiscount(existingId, directPercentageDiscountDTO);
+        });
+
+        verify(productRepository, times(1)).findById(existingId);
+        verify(productDirectDiscountApplicationRepository, times(1)).findByProductIdAndRemovedAtIsNull(existingId);
+    }
+
+    @Test
+    @DisplayName("apply direct discount should throw ResourceConflictException when product already has coupon discount")
+    void applyDirectDiscount_ShouldThrowResourceConflictException_WhenProductAlreadyHasCouponDiscount() {
+        DirectPercentageDiscountDTO directPercentageDiscountDTO = new DirectPercentageDiscountDTO(BigDecimal.valueOf(10));
+        when(productCouponApplicationRepository.findByProductIdAndRemovedAtIsNull(existingId)).thenReturn(productCouponApplication);
+        when(productRepository.findById(existingId)).thenReturn(Optional.of(product));
+
+        assertThrows(ResourceConflictException.class, () -> {
+            productService.applyDirectPercentDiscount(existingId, directPercentageDiscountDTO);
+        });
+
+        verify(productRepository, times(1)).findById(existingId);
+        verify(productCouponApplicationRepository, times(1)).findByProductIdAndRemovedAtIsNull(existingId);
+    }
+
+    @Test
+    @DisplayName("apply direct discount should apply discount successfully when product is valid and has no discounts")
+    void applyDirectDiscount_ShouldApplyDirectDiscount_WhenProductValidAndDiscountAreValid() {
+        DirectPercentageDiscountDTO directPercentageDiscountDTO = new DirectPercentageDiscountDTO(BigDecimal.valueOf(10));
+        when(productDirectDiscountApplicationRepository.findByProductIdAndRemovedAtIsNull(existingId)).thenReturn(null);
+        when(productCouponApplicationRepository.findByProductIdAndRemovedAtIsNull(existingId)).thenReturn(null);
+        when(productRepository.findById(existingId)).thenReturn(Optional.of(product));
+
+        ProductDiscountDTO result = assertDoesNotThrow(() -> {
+            return productService.applyDirectPercentDiscount(existingId, directPercentageDiscountDTO);
+        });
+
+        assertNotNull(result);
+        assertEquals(existingId, result.id());
+        assertEquals(directPercentageDiscountDTO.percentage(), result.discount().value());
     }
 }
