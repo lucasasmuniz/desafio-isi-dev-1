@@ -8,6 +8,7 @@ import br.com.lmuniz.desafio.senai.repositories.CouponRepository;
 import br.com.lmuniz.desafio.senai.repositories.ProductCouponApplicationRepository;
 import br.com.lmuniz.desafio.senai.services.exceptions.BusinessRuleException;
 import br.com.lmuniz.desafio.senai.services.exceptions.DatabaseException;
+import br.com.lmuniz.desafio.senai.services.exceptions.ResourceConflictException;
 import br.com.lmuniz.desafio.senai.services.exceptions.ResourceNotFoundException;
 import br.com.lmuniz.desafio.senai.utils.Utils;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -126,7 +127,7 @@ public class CouponService {
         entity.setValidFrom(entityToValidate.getValidFrom());
         entity.setValidUntil(entityToValidate.getValidUntil());
 
-        if (!previousValue.equals(entity.getValue()) || !previousType.equals(entity.getType())) {
+        if (previousValue.compareTo(entity.getValue()) != 0 || !previousType.equals(entity.getType())) {
             int removedCount = productCouponApplicationRepository.removeActiveApplicationsByCouponId(id, Instant.now());
             if (entity.getUsesCount() >= removedCount) {
                 entity.setUsesCount(entity.getUsesCount() - removedCount);
