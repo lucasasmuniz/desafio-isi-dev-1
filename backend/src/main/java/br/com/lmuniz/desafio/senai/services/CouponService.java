@@ -167,7 +167,7 @@ public class CouponService {
 
     private void validateBusinessRules(Coupon entity, Long id, Map<String, String> errors) {
         if (couponRepository.findByCodeAndIdNot(entity.getCode(), id).isPresent()) {
-            errors.put("code", "Coupon code '" + entity.getCode() + "' already exists");
+            throw new ResourceConflictException("Coupon with code '" + entity.getCode() + "' already exists");
         }
 
         List<String> reservedCodes = List.of("admin", "auth", "null", "undefined");
@@ -189,7 +189,6 @@ public class CouponService {
 
         if (entity.getType() == CouponEnum.UNKNOWN) {
             errors.put("type", "Invalid value. Must be 'percent' or 'fixed'.");
-            return;
         }
 
         if (entity.getType() != null && entity.getValue() != null) {
