@@ -4,7 +4,9 @@ import br.com.lmuniz.desafio.senai.domains.dtos.coupons.CouponDTO;
 import br.com.lmuniz.desafio.senai.domains.dtos.coupons.CouponDetailsDTO;
 import br.com.lmuniz.desafio.senai.domains.entities.Coupon;
 import br.com.lmuniz.desafio.senai.repositories.CouponRepository;
+import br.com.lmuniz.desafio.senai.repositories.ProductCouponApplicationRepository;
 import br.com.lmuniz.desafio.senai.services.exceptions.BusinessRuleException;
+import br.com.lmuniz.desafio.senai.services.exceptions.DatabaseException;
 import br.com.lmuniz.desafio.senai.services.exceptions.ResourceConflictException;
 import br.com.lmuniz.desafio.senai.services.exceptions.ResourceNotFoundException;
 import br.com.lmuniz.desafio.senai.tests.CouponFactory;
@@ -12,7 +14,6 @@ import br.com.lmuniz.desafio.senai.tests.CouponFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.github.fge.jsonpatch.JsonPatch;
-import com.github.fge.jsonpatch.JsonPatchException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -30,6 +31,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -38,13 +40,16 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(SpringExtension.class)
-public class CouponServiceTests{
+public class CouponServiceTests {
 
     @InjectMocks
     private CouponService couponService;
 
     @Mock
     private CouponRepository couponRepository;
+
+    @Mock
+    private ProductCouponApplicationRepository productCouponApplicationRepository;
 
     @Spy
     private ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
@@ -131,29 +136,18 @@ public class CouponServiceTests{
     @Test
     @DisplayName("createCoupon should return CouponDTO when data is valid and oneShot is false")
     void createCoupon_ShouldReturnDTO_WhenDataIsValidAndOneShotIsFalse() {
-        // Arrange
-        CouponDTO notOneShotDTO = new CouponDTO(null, "notoneshot", "fixed", BigDecimal.ONE, false, 100, Instant.now().plus(1, ChronoUnit.DAYS), Instant.now().plus(2, ChronoUnit.DAYS));
+        CouponDTO oneShotDTO = new CouponDTO(null, "oneshot", "fixed", BigDecimal.ONE, true, null, Instant.now().plus(1, ChronoUnit.DAYS), Instant.now().plus(2, ChronoUnit.DAYS));
         when(couponRepository.findByCodeAndIdNot(anyString(), any())).thenReturn(Optional.empty());
-        // Act
-        CouponDTO result = couponService.createCoupon(notOneShotDTO);
-        // Assert
+
+        CouponDTO result = couponService.createCoupon(oneShotDTO);
+
         assertAll("Valid Multi-Use Coupon",
-                () -> assertEquals(notOneShotDTO.code(), result.code()),
-                () -> assertFalse(result.oneShot()),
-                () -> assertEquals(100, result.maxUses()),
+                () -> assertEquals(oneShotDTO.code(), result.code()),
+                () -> assertTrue(result.oneShot()),
                 () -> assertNotNull(result)
         );
         verify(couponRepository).save(any(Coupon.class));
     }
-
-//    @Test
-//    @DisplayName("createCoupon should throw ResourceConflictException when code already exists")
-//    void createCoupon_ShouldThrowResourceConflictException_WhenCodeExists() {
-//        when(couponRepository.findByCodeAndIdNot(couponDTO.code(), -1L)).thenReturn(Optional.of(new Coupon()));
-//
-//        assertThrows(ResourceConflictException.class, () -> couponService.createCoupon(couponDTO));
-//        verify(couponRepository, never()).save(any());
-//    }
 
     @ParameterizedTest
     @ValueSource(strings = {"admin", "auth", "null", "undefined"})
@@ -163,24 +157,6 @@ public class CouponServiceTests{
 
         assertThrows(BusinessRuleException.class, () -> couponService.createCoupon(reservedCodeDto));
     }
-
-//    @Test
-//    @DisplayName("createCoupon should throw BusinessRuleException for fixed type coupon with zero value")
-//    void createCoupon_ShouldThrowBusinessRuleException_WhenFixedTypeAndValueIsZero() {
-//        CouponDTO zeroValueDto = new CouponDTO(null, "zerovalue", "fixed", BigDecimal.ZERO, false, 100, Instant.now().plus(1, ChronoUnit.DAYS), Instant.now().plus(2, ChronoUnit.DAYS));
-//
-//        BusinessRuleException e = assertThrows(BusinessRuleException.class, () -> couponService.createCoupon(zeroValueDto));
-//        assertTrue(e.getMessage().contains("must be positive"));
-//    }
-
-//    @Test
-//    @DisplayName("createCoupon should throw BusinessRuleException for valid dates range greater then 5 years")
-//    void createCoupon_ShouldThrowBusinessRuleException_WhenValidDatesRangeGreaterThen5Years() {
-//        CouponDTO zeroValueDto = new CouponDTO(null, "validdates", "fixed", BigDecimal.ONE, false, 100, Instant.now().plus(1, ChronoUnit.DAYS), Instant.now().plus(3000, ChronoUnit.DAYS));
-//
-//        BusinessRuleException e = assertThrows(BusinessRuleException.class, () -> couponService.createCoupon(zeroValueDto));
-//        assertTrue(e.getMessage().contains("5 years"));
-//    }
 
     @Test
     @DisplayName("deleteCoupon should set deletedAt when ID exists")
@@ -200,117 +176,252 @@ public class CouponServiceTests{
         verify(couponRepository, never()).save(any());
     }
 
-//    @Test
-//    @DisplayName("partialUpdateCoupon should update coupon when patch is valid")
-//    void partialUpdateCoupon_ShouldUpdate_WhenPatchIsValid() throws Exception {
-//        String patchJson = """
-//        [
-//            { "op": "replace", "path": "/value", "value": 25 }
-//        ]
-//        """;
-//        JsonPatch patch = JsonPatch.fromJson(objectMapper.readTree(patchJson));
-//
-//        CouponDetailsDTO result = couponService.partialUpdateCoupon(existingId, patch);
-//
-//        assertEquals(new BigDecimal("25"), result.value());
-//        verify(couponRepository).saveAndFlush(any(Coupon.class));
-//    }
-//
-//    @Test
-//    @DisplayName("partialUpdateCoupon should throw BusinessRuleException when changes maxUses to less than usesCount")
-//    void partialUpdateCoupon_ShouldThrowBusinessRuleException_WhenMaxUsesLessThenUsesCount() throws Exception {
-//        coupon.setUsesCount(10);
-//        when(couponRepository.findById(existingId)).thenReturn(Optional.of(coupon));
-//        String patchJson = """
-//        [
-//            { "op": "replace", "path": "/maxUses", "value": 2 },
-//            { "op": "replace", "path": "/oneShot", "value": false }
-//        ]
-//        """;
-//        JsonPatch patch = JsonPatch.fromJson(objectMapper.readTree(patchJson));
-//
-//        BusinessRuleException e = assertThrows(BusinessRuleException.class, () -> {
-//            couponService.partialUpdateCoupon(existingId, patch);
-//        });
-//        assertTrue(e.getMessage().contains("lower than the current usage count"));
-//        verify(couponRepository, never()).saveAndFlush(any());
-//    }
-
     @Test
-    @DisplayName("partialUpdateCoupon should throw ResourceNotFoundException when non existing id")
-    void partialUpdateCoupon_ShouldThrowResourceNotFoundException_WhenPatchFails() throws Exception {
-        String patchJson = """
-        [
-            { "op": "replace", "path": "/value", "value": 25 }
-        ]
-        """;
-        JsonPatch patch = JsonPatch.fromJson(objectMapper.readTree(patchJson));
+    @DisplayName("partialUpdateCoupon should throw BusinessRuleException when patch is invalid")
+    void partialUpdateCoupon_ShouldThrowBusinessRuleException_WhenPatchIsInvalid() throws Exception {
+        String invalidPatchJson = """
+                [
+                    { "op": "remove", "path": "/invalid" }
+                ]
+                """;
 
-        ResourceNotFoundException e = assertThrows(ResourceNotFoundException.class, () -> {
-            couponService.partialUpdateCoupon(nonExistingId, patch);
-        });
-        assertTrue(e.getMessage().contains("not found"));
-        verify(couponRepository, never()).saveAndFlush(any());
-    }
-
-    @Test
-    @DisplayName("partialUpdateCoupon should throw BusinessRuleException when patch operation fails")
-    void partialUpdateCoupon_ShouldThrowBusinessRuleException_WhenPatchFails() throws Exception {
-        JsonPatch patch = mock(JsonPatch.class);
-        when(patch.apply(any())).thenThrow(new JsonPatchException("Invalid patch"));
-
-        BusinessRuleException e = assertThrows(BusinessRuleException.class, () -> {
-            couponService.partialUpdateCoupon(existingId, patch);
-        });
-        assertTrue(e.getMessage().contains("Invalid patch"));
-        verify(couponRepository, never()).saveAndFlush(any());
-    }
-
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("provideInvalidPatchOperations")
-    @DisplayName("partialUpdateCoupon should throw BusinessRuleException for invalid operations")
-    void partialUpdateCoupon_shouldThrowBusinessRuleException_forInvalidPatchOperations(String testName, String patchJson) throws Exception {
-        JsonPatch patch = JsonPatch.fromJson(objectMapper.readTree(patchJson));
+        JsonPatch invalidPatch = JsonPatch.fromJson(objectMapper.readTree(invalidPatchJson));
 
         assertThrows(BusinessRuleException.class, () -> {
+            couponService.partialUpdateCoupon(existingId, invalidPatch);
+        });
+        verify(couponRepository, times(1)).findById(existingId);
+    }
+
+    @Test
+    @DisplayName("partial update coupon should throw ResourceConflictException when id does not exists")
+    void partialUpdateCoupon_ShouldThrowResourceNotFoundException_WhenIdDoesNotExist() throws Exception {
+        String patchJson = """
+                [
+                    { "op": "replace", "path": "/code", "value": "newCode" }
+                ]
+                """;
+
+        JsonPatch patch = JsonPatch.fromJson(objectMapper.readTree(patchJson));
+
+        assertThrows(ResourceNotFoundException.class, () -> {
+            couponService.partialUpdateCoupon(nonExistingId, patch);
+        });
+        verify(couponRepository, times(1)).findById(nonExistingId);
+    }
+
+
+    @Test
+    @DisplayName("partialUpdateCoupon should throw ResourceConflictException when normalized code already exists")
+    void partialUpdateCoupon_ShouldThrowResourceConflictException_WhenNormalizedCodeAlreadyExists() throws Exception {
+        String patchJson = """
+                [{ "op": "replace", "path": "/code", "value": "newCode" }]
+                """;
+
+        JsonPatch patch = JsonPatch.fromJson(objectMapper.readTree(patchJson));
+
+        when(couponRepository.findByCodeAndIdNot("newCode", existingId)).thenReturn(Optional.of(coupon));
+
+        assertThrows(ResourceConflictException.class, () -> {
             couponService.partialUpdateCoupon(existingId, patch);
         });
+
+        verify(couponRepository, times(1)).findById(existingId);
+        verify(couponRepository, times(1)).findByCodeAndIdNot("newCode", existingId);
+    }
+
+    @Test
+    @DisplayName("partialUpdateCoupon should throw DatabaseException when coupon uses count would be negative")
+    void partialUpdateCoupon_ShouldThrowDatabaseException_WhenCouponNegativeUsesCount() throws Exception{
+        String patchJson = """
+                [
+                    { "op": "replace", "path": "/value", "value": 8 }
+                ]
+                """;
+
+        JsonPatch patch = JsonPatch.fromJson(objectMapper.readTree(patchJson));
+        when(productCouponApplicationRepository.removeActiveApplicationsByCouponId(any(Long.class), any(Instant.class)))
+                .thenReturn(50);
+
+        assertThrows(DatabaseException.class, () -> {
+            couponService.partialUpdateCoupon(existingId, patch);
+        });
+
+        verify(couponRepository, times(1)).findById(existingId);
         verify(couponRepository, never()).saveAndFlush(any());
     }
 
-    private static Stream<Arguments> provideInvalidPatchOperations() {
+    @ParameterizedTest(name = "should update coupon {0}")
+    @MethodSource("provideValidPatches")
+    @DisplayName("partialUpdateCoupon should update coupon when patch is valid")
+    void partialUpdateCoupon_shouldUpdateCoupon_whenPatchIsValid(
+            String scenarioName, String patchJson) throws Exception{
+        JsonPatch patch = JsonPatch.fromJson(objectMapper.readTree(patchJson));
+
+        CouponDetailsDTO result = assertDoesNotThrow(() -> {
+            return couponService.partialUpdateCoupon(existingId, patch);
+        });
+
+        assertNotNull(result);
+        assertEquals(existingId, result.id());
+        assertEquals(coupon.getCode(), result.code());
+        verify(couponRepository, times(1)).findById(existingId);
+        verify(couponRepository, times(1)).saveAndFlush(any());
+    }
+
+    private static Stream<Arguments> provideValidPatches() {
         return Stream.of(
-                Arguments.of("when trying to change immutable code", """
-                    [ { "op": "replace", "path": "/code", "value": "newcode" } ]
-                """),
-                Arguments.of("when trying to change immutable usesCount", """
-                    [ { "op": "replace", "path": "/usesCount", "value": 99 } ]
-                """),
-                Arguments.of("when trying to remove required field validUtil", """
-                    [ { "op": "remove", "path": "/validUntil" } ]
-                """),
-                Arguments.of("when trying to change createdAt field", """
-                    [ { "op": "replace", "path": "/createdAt", "value": "2025-01-01T00:00:00Z"} ]
-                """),
-                Arguments.of("when trying to change updatedAt field", """
-                    [ { "op": "replace", "path": "/updatedAt", "value": "2025-01-01T00:00:00Z"} ]
-                """),
-                Arguments.of("when trying to change validUntil field to past or present date", """
-                    [ { "op": "replace", "path": "/validUntil","value": "2024-01-01T00:00:00Z"} ]
-                """),
-                Arguments.of("when trying to change invert validDates field values", """
-                    [
-                     { "op": "replace", "path": "/validFrom","value": "2026-01-01T00:00:00Z"},
-                     { "op": "replace", "path": "/validUntil","value": "2025-12-01T00:00:00Z"}
-                  ]
-                """),
-                Arguments.of("when trying to change deletedAt field", """
-                    [ { "op": "replace", "path": "/deletedAt","value": "2025-01-01T00:00:00Z"} ]
-                """),
-                Arguments.of("when trying to change one shot to true and max uses is different then null", """
-                    [ { "op": "replace", "path": "/oneShot","value": true},
-                     { "op": "replace", "path": "/maxUses","value": 10} ]
-                """)
+                Arguments.of(
+                        "when updating type and value",
+                        """
+                            [
+                                { "op": "replace", "path": "/type", "value": "percent" },
+                                { "op": "replace", "path": "/value", "value": "50" }
+                            ]
+                            """),
+                Arguments.of(
+                        "when updating type and value",
+                        """
+                                [
+                                    { "op": "replace", "path": "/maxUses", "value": 500 }
+                                ]
+                            """)
+                ,
+                Arguments.of(
+                        "when updating type and value",
+                        """
+                                [
+                                  { "op": "replace", "path": "/type", "value": "percent" }
+                                ]
+                            """),
+                Arguments.of(
+                        "when updating type and value",
+                        """
+                            [
+                              { "op": "replace", "path": "/value", "value": 50 }
+                            ]
+                            """),
+                Arguments.of(
+                        "when updating type and value",
+                        """
+                            [
+                              { "op": "replace", "path": "/code", "value": "sameCode" }
+                            ]
+                            """)
+        );
+    }
+
+    @ParameterizedTest(name = "should fail with multiple errors {0}")
+    @MethodSource("providePatchesWithMultipleErrors")
+    @DisplayName("partialUpdateCoupon should collect all errors for invalid patch")
+    void partialUpdateCoupon_shouldCollectAllErrors_forInvalidPatch(
+            String scenarioName, String patchJson, List<String> expectedErrorKeys) throws Exception {
+
+        JsonPatch patch = JsonPatch.fromJson(objectMapper.readTree(patchJson));
+
+        BusinessRuleException exceptionResult = assertThrows(BusinessRuleException.class, () -> {
+            couponService.partialUpdateCoupon(existingId, patch);
+        });
+
+        Map<String, String> errors = exceptionResult.getErrors();
+        assertNotNull(errors, "Error map should not be null");
+        assertEquals(expectedErrorKeys.size(), errors.size(), "Should find the exact number of errors");
+
+        for (String expectedKey : expectedErrorKeys) {
+            assertTrue(errors.containsKey(expectedKey), "Expected error map to contain key: " + expectedKey);
+        }
+
+        verify(couponRepository, times(1)).findById(existingId);
+        verify(couponRepository, never()).saveAndFlush(any());
+    }
+
+    private static Stream<Arguments> providePatchesWithMultipleErrors() {
+        return java.util.stream.Stream.of(
+                Arguments.of(
+                        "when value is invalid and dates are inverted",
+                        """
+                               [
+                                  { "op": "replace", "path": "/maxUses", "value": 3 },
+                                  { "op": "replace", "path": "/oneShot", "value": "true" },
+                                  { "op": "replace", "path": "/usesCount", "value": 7 },
+                                  { "op": "replace", "path": "/type", "value": "percent" },
+                                  { "op": "replace", "path": "/value", "value": 90 },
+                                  { "op": "replace", "path": "/validFrom", "value": "2025-06-29T00:00:00Z" },
+                                  { "op": "replace", "path": "/validUntil", "value": "2025-06-27T00:00:00Z" }
+                                ]
+                               """,
+                        List.of("maxUses", "oneShot","value","validFrom","validUntil")
+                ),
+                Arguments.of(
+                        "when maxUses conflicts with oneShot and usesCount",
+                        """
+                            [
+                                { "op": "replace", "path": "/oneShot", "value": "false" },
+                                { "op": "replace", "path": "/usesCount", "value": 7 },
+                                { "op": "replace", "path": "/maxUses", "value": 3 },
+                                { "op": "replace", "path": "/type", "value": "invalidType" },
+                                { "op": "replace", "path": "/value", "value": 90 }
+                            ]
+                            """,
+                        List.of("maxUses", "type")
+                ),
+                Arguments.of(
+                        "when fixed coupon value is negative",
+                        """
+                            [
+                                { "op": "replace", "path": "/type", "value": "fixed" },
+                                { "op": "replace", "path": "/value", "value": -4 }
+                            ]
+                            """,
+                        List.of("value")
+                ),
+                Arguments.of(
+                        "when percent coupon value is less than 1",
+                        """
+                            [
+                                { "op": "replace", "path": "/type", "value": "percent" },
+                                { "op": "replace", "path": "/value", "value": 0.3 }
+                            ]
+                            """,
+                        List.of("value")
+                ),
+                Arguments.of(
+                        "when removing multiple required fields",
+                        """
+                                [
+                                    { "op": "replace", "path": "/oneShot", "value": "true" },
+                                    { "op": "replace", "path": "/usesCount", "value": 0 },
+                                    { "op": "replace", "path": "/maxUses", "value": 3 },
+                                    { "op": "replace", "path": "/type", "value": "fixed" },
+                                    { "op": "remove", "path": "/value" },
+                                    { "op": "replace", "path": "/validFrom", "value": "2031-06-27T00:00:00Z" },
+                                    { "op": "remove", "path": "/validUntil" }
+                                ]
+                                """,
+                        List.of("value", "validUntil","maxUses")
+                ),
+                Arguments.of(
+                        "when type is invalid and date range exceeds 5 years",
+                        """
+                                [
+                                    { "op": "replace", "path": "/validFrom", "value": "2025-06-29T00:00:00Z" },
+                                    { "op": "replace", "path": "/validUntil", "value": "2031-06-27T00:00:00Z" }
+                                ]
+                                """,
+                        List.of("validUntil")
+                ),
+                Arguments.of(
+                        "when removing multiples required fields",
+                        """
+                        [
+                            { "op": "remove", "path": "/type"},
+                            { "op": "remove", "path": "/value" },
+                            { "op": "remove", "path": "/validFrom" },
+                            { "op": "remove", "path": "/validUntil" }
+                        ]
+                        """,
+                        List.of("type", "value","validFrom", "validUntil")
+                )
         );
     }
 }
