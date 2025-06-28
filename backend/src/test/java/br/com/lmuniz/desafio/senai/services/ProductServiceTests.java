@@ -13,10 +13,7 @@ import br.com.lmuniz.desafio.senai.repositories.CouponRepository;
 import br.com.lmuniz.desafio.senai.repositories.ProductCouponApplicationRepository;
 import br.com.lmuniz.desafio.senai.repositories.ProductDirectDiscountApplicationRepository;
 import br.com.lmuniz.desafio.senai.repositories.ProductRepository;
-import br.com.lmuniz.desafio.senai.services.exceptions.BusinessRuleException;
-import br.com.lmuniz.desafio.senai.services.exceptions.InvalidPriceException;
-import br.com.lmuniz.desafio.senai.services.exceptions.ResourceConflictException;
-import br.com.lmuniz.desafio.senai.services.exceptions.ResourceNotFoundException;
+import br.com.lmuniz.desafio.senai.services.exceptions.*;
 import br.com.lmuniz.desafio.senai.tests.CouponFactory;
 import br.com.lmuniz.desafio.senai.tests.ProductDiscountApplicationsFactory;
 import br.com.lmuniz.desafio.senai.tests.ProductFactory;
@@ -377,7 +374,7 @@ public class ProductServiceTests {
     @Test
     @DisplayName("apply direct discount should throw ResourceConflictException when product id does not exist")
     void applyDirectDiscount_ShouldThrowResourceNotFoundException_WhenProductIdDoesNotExist() {
-        DirectPercentageDiscountDTO directPercentageDiscountDTO = new DirectPercentageDiscountDTO(BigDecimal.TEN);
+        DirectPercentageDiscountDTO directPercentageDiscountDTO = new DirectPercentageDiscountDTO(BigDecimal.valueOf(10));
         assertThrows(ResourceNotFoundException.class, () -> {
             productService.applyDirectPercentDiscount(nonExistingId, directPercentageDiscountDTO);
         });
@@ -458,5 +455,45 @@ public class ProductServiceTests {
         assertNotNull(result);
         assertEquals(existingId, result.id());
         assertEquals(directPercentageDiscountDTO.percentage(), result.discount().value());
+    }
+
+    @Test
+    @DisplayName("remove discount should throw ResourceNotFoundException when product id does not exist")
+    void removeDiscount_ShouldThrowResourceNotFoundException_WhenProductIdDoesNotExist() {
+        assertThrows(ResourceNotFoundException.class, () -> {
+            productService.removeDiscount(nonExistingId);
+        });
+
+        verify(productRepository, times(1)).findById(nonExistingId);
+    }
+
+    @Test
+    @DisplayName("remove discount should throw DatabaseException when coupon applied and uses count is zero")
+    void removeDiscount_ShouldThrowDatabaseException_WhenCouponAppliedAndUsesCountIsZero() {
+        coupon.setUsesCount(0);
+        productCouponApplication.setCoupon(coupon);
+        when(productCouponApplicationRepository.findByProductIdAndRemovedAtIsNull(existingId)).thenReturn(productCouponApplication);
+
+        assertThrows(DatabaseException.class, () -> {
+            productService.removeDiscount(existingId);
+        });
+
+        verify(productRepository, times(1)).findById(existingId);
+        verify(productCouponApplicationRepository, times(1)).findByProductIdAndRemovedAtIsNull(existingId);
+    }
+
+    @Test
+    @DisplayName("remove discount should throw BusinessRuleException when product has no discount applied")
+    void removeDiscount_ShouldThrowBusinessRuleException_WhenNoDiscountsApplied() {
+        when(productCouponApplicationRepository.findByProductIdAndRemovedAtIsNull(existingId)).thenReturn(null);
+        when(productDirectDiscountApplicationRepository.findByProductIdAndRemovedAtIsNull(existingId)).thenReturn(null);
+
+        assertThrows(BusinessRuleException.class, () -> {
+            productService.removeDiscount(existingId);
+        });
+
+        verify(productRepository, times(1)).findById(existingId);
+        verify(productCouponApplicationRepository, times(1)).findByProductIdAndRemovedAtIsNull(existingId);
+        verify(productDirectDiscountApplicationRepository, times(1)).findByProductIdAndRemovedAtIsNull(existingId);
     }
 }
