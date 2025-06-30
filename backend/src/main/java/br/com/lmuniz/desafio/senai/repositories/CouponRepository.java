@@ -14,7 +14,7 @@ import java.util.Optional;
 public interface CouponRepository extends JpaRepository<Coupon, Long> {
     boolean existsByCode(String code);
 
-    @Query("SELECT c FROM Coupon c WHERE c.deletedAt IS NULL AND :now BETWEEN c.validFrom AND c.validUntil AND (c.maxUses IS NULL OR c.usesCount < c.maxUses)")
+    @Query("SELECT c FROM Coupon c WHERE c.deletedAt IS NULL AND :now BETWEEN c.validFrom AND c.validUntil AND ((c.maxUses IS NULL AND not(c.oneShot)) OR c.usesCount < c.maxUses OR (c.maxUses IS NULL AND c.oneShot AND c.usesCount = 0))")
     List<Coupon> searchValidCoupons(@Param("now") Instant now);
 
     Optional<Coupon> findByCodeAndIdNot(String code, Long id);
