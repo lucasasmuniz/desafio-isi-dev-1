@@ -218,9 +218,10 @@ public class ProductService {
         BigDecimal originalPrice = entity.getPrice();
         String originalNormalizedName = entity.getNormalizedName();
 
+        ProductDTO originalDto = new ProductDTO(entity);
         ProductDTO patchedDto;
         try {
-            JsonNode productNode = objectMapper.valueToTree(entity);
+            JsonNode productNode = objectMapper.valueToTree(originalDto);
             JsonNode patchedNode = patch.apply(productNode);
             patchedDto = objectMapper.treeToValue(patchedNode, ProductDTO.class);
         } catch (JsonProcessingException | JsonPatchException e) {
@@ -231,7 +232,7 @@ public class ProductService {
 
         entity.setName(patchedDto.name());
         entity.setDescription(patchedDto.description());
-        entity.setPrice(patchedDto.price().setScale(2, RoundingMode.HALF_UP));
+        entity.setPrice(patchedDto.price() == null ? null : patchedDto.price().setScale(2, RoundingMode.HALF_UP));
         entity.setStock(patchedDto.stock());
 
         validateProductUpdate(entity, errors);
@@ -241,7 +242,7 @@ public class ProductService {
             throw new BusinessRuleException(errors);
         }
 
-        if (!originalPrice.equals(entity.getPrice())){
+        if (originalPrice.compareTo(entity.getPrice()) != 0){
             hasDiscountCheck(entity);
         }
 
@@ -294,7 +295,7 @@ public class ProductService {
         if (patched.getName() != null && !patched.getName().isBlank()) {
             String normalizedPatchedName = Utils.normalizeName(patched.getName());
             if(!normalizedPatchedName.equals(originalNormalizedName) && productRepository.existsByNormalizedName(normalizedPatchedName)) {
-                errors.put("name", "Product with name '" + patched.getName() + "' already exists.");
+                throw new ResourceConflictException("Product with name '" + patched.getName() + "' already exists.");
             }
             patched.setNormalizedName(normalizedPatchedName);
         }
