@@ -17,6 +17,10 @@ import br.com.lmuniz.desafio.senai.services.exceptions.*;
 import br.com.lmuniz.desafio.senai.tests.CouponFactory;
 import br.com.lmuniz.desafio.senai.tests.ProductDiscountApplicationsFactory;
 import br.com.lmuniz.desafio.senai.tests.ProductFactory;
+import br.com.lmuniz.desafio.senai.utils.Utils;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.github.fge.jsonpatch.JsonPatch;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -26,11 +30,15 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
@@ -54,13 +62,16 @@ public class ProductServiceTests {
     @Mock
     private ProductCouponApplicationRepository productCouponApplicationRepository;
 
+    @Spy
+    private ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
+
     @Mock
     private ProductDirectDiscountApplicationRepository productDirectDiscountApplicationRepository;
 
     private String nonExistingNormalizedName;
     private String existingNormalizedName;
-    private String couponValidNormalizedCode = "promo";
-    private String couponInvalidNormalizedCode = "invalid";
+    private String couponValidNormalizedCode;
+    private String couponInvalidNormalizedCode;
     private Long existingId;
     private Long nonExistingId;
     private Product product;
@@ -72,9 +83,12 @@ public class ProductServiceTests {
     void setUp() {
         nonExistingNormalizedName = "cafe premium";
         existingNormalizedName = "cafe normal";
+        couponValidNormalizedCode = "promo";
+        couponInvalidNormalizedCode = "invalid";
         existingId = 1L;
         nonExistingId = 2L;
         product = ProductFactory.createProduct();
+        product.setNormalizedName(Utils.normalizeName(product.getName()));
         coupon = CouponFactory.createCoupon();
         coupon.setUsesCount(2);
         productDirectDiscountApplication = ProductDiscountApplicationsFactory.createProductDirectDiscountApplication(product);
@@ -82,27 +96,28 @@ public class ProductServiceTests {
 
         when(productRepository.existsByNormalizedName(nonExistingNormalizedName)).thenReturn(false);
         when(productRepository.existsByNormalizedName(existingNormalizedName)).thenReturn(true);
-        when(productRepository.save(any(Product.class))).thenReturn(product);
+        when(productRepository.save(any(Product.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(productRepository.saveAndFlush(any(Product.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(productRepository.findById(existingId)).thenReturn(Optional.of(product));
         when(productRepository.findById(nonExistingId)).thenReturn(Optional.empty());
         when(couponRepository.findByCode(couponValidNormalizedCode)).thenReturn(coupon);
         when(couponRepository.findByCode(couponInvalidNormalizedCode)).thenReturn(null);
-        when(productCouponApplicationRepository.save(any(ProductCouponApplication.class))).thenReturn(productCouponApplication);
-        when(productDirectDiscountApplicationRepository.save(any(ProductDirectDiscountApplication.class))).thenReturn(productDirectDiscountApplication);
+        when(productCouponApplicationRepository.save(any(ProductCouponApplication.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(productDirectDiscountApplicationRepository.save(any(ProductDirectDiscountApplication.class))).thenAnswer(invocation -> invocation.getArgument(0));
     }
 
     @Test
     @DisplayName("create product should throw ResourceNotFoundException when normalized name does not exist and valid data")
     void createProductShouldCreateProductWhenNonExistingNormalizedNameAndValidData() {
-        ProductDTO dto = new ProductDTO(1L, nonExistingNormalizedName,product.getDescription(), product.getStock(), product.getPrice());
+        product.setName(nonExistingNormalizedName);
+        ProductDTO dto = new ProductDTO(product);
         ProductDTO result = productService.createProduct(dto);
 
         assertNotNull(result);
-        assertNotNull(result.id());
         assertEquals(product.getName(), result.name());
         assertEquals(product.getDescription(), result.description());
         assertEquals(product.getStock(), result.stock());
-        assertEquals(product.getPrice(), result.price());
+        assertEquals(product.getPrice().setScale(2, RoundingMode.HALF_UP), result.price().setScale(2, RoundingMode.HALF_UP));
     }
 
     @Test
@@ -495,5 +510,176 @@ public class ProductServiceTests {
         verify(productRepository, times(1)).findById(existingId);
         verify(productCouponApplicationRepository, times(1)).findByProductIdAndRemovedAtIsNull(existingId);
         verify(productDirectDiscountApplicationRepository, times(1)).findByProductIdAndRemovedAtIsNull(existingId);
+    }
+
+    @Test
+    @DisplayName("partial update should throw ResourceNotFoundException when product id does not exist")
+    void partialUpdate_shouldThrowResourceNotFoundException_whenProductIdDoesNotExist() {
+        JsonPatch patch = new JsonPatch(List.of());
+
+        assertThrows(ResourceNotFoundException.class, () -> productService.partialUpdateProduct(nonExistingId, patch));
+
+        verify(productRepository, times(1)).findById(nonExistingId);
+        verify(productRepository, never()).saveAndFlush(any(Product.class));
+    }
+
+    @Test
+    @DisplayName("partial update should throw BusinessRuleException when patch is invalid")
+    void partialUpdate_shouldThrowBusinessRuleException_whenInvalidPatch() throws Exception {
+        String invalidPatchJson = """
+                [
+                    { "op": "remove", "path": "/invalid" }
+                ]
+                """;
+
+        JsonPatch invalidPatch = JsonPatch.fromJson(objectMapper.readTree(invalidPatchJson));
+
+        assertThrows(BusinessRuleException.class, () -> {
+            productService.partialUpdateProduct(existingId, invalidPatch);
+        });
+        verify(productRepository, times(1)).findById(existingId);
+        verify(productRepository, never()).saveAndFlush(any(Product.class));
+    }
+
+    @ParameterizedTest(name = "should fail with multiple errors {0}")
+    @MethodSource("providePatchesWithMultipleErrors")
+    @DisplayName("partial update  should collect all errors and throw BusinessRuleException for invalid business rules")
+    void partialUpdate_shouldThrowBusinessRuleException_whenBusinessRuleInvalidPatch(
+            String scenarioName, String patchJson, List<String> expectedErrorKeys) throws Exception {
+
+        JsonPatch patch = JsonPatch.fromJson(objectMapper.readTree(patchJson));
+
+        BusinessRuleException exceptionResult = assertThrows(BusinessRuleException.class, () -> {
+            productService.partialUpdateProduct(existingId, patch);
+        });
+
+        Map<String, String> errors = exceptionResult.getErrors();
+
+        assertNotNull(errors, "Error map should not be null");
+        assertEquals(expectedErrorKeys.size(), errors.size(), "Should find the exact number of errors");
+        for (String expectedKey : expectedErrorKeys) {
+            assertTrue(errors.containsKey(expectedKey), "Expected error map to contain key: " + expectedKey);
+        }
+
+        verify(productRepository, times(1)).findById(existingId);
+        verify(productRepository, never()).saveAndFlush(any(Product.class));
+    }
+
+    private static Stream<Arguments> providePatchesWithMultipleErrors() {
+        String longDescription = "*".repeat(301);
+        String longName = "*".repeat(101);
+
+        return Stream.of(
+                Arguments.of(
+                        "when remove required fields",
+                        """
+                               [
+                                  { "op": "remove", "path": "/name" },
+                                  { "op": "remove", "path": "/price" },
+                                  { "op": "remove", "path": "/stock" }
+                                ]
+                               """,
+                        List.of("name", "price","stock")
+                ),
+                Arguments.of(
+                        "when name and description are too long, price and stock are negative",
+                        """
+                               [
+                                  { "op": "replace", "path": "/name", "value": "%s" },
+                                  { "op": "replace", "path": "/price", "value": -10.00 },
+                                  { "op": "replace", "path": "/stock", "value": -10.00 },
+                                  { "op": "replace", "path": "/description", "value": "%s" }
+                                ]
+                               """.formatted(longName,longDescription),
+                        List.of("name", "price","stock", "description")
+                ),
+                Arguments.of(
+                        "when name is blank, price and stock are too high",
+                        """
+                               [
+                                  { "op": "replace", "path": "/name", "value": "" },
+                                  { "op": "replace", "path": "/price", "value": 1000001.00 },
+                                  { "op": "replace", "path": "/stock", "value": 1000000 }
+                                ]
+                               """,
+                        List.of("name", "price","stock")
+                ),
+                Arguments.of(
+                        "when name is too short",
+                        """
+                               [
+                                  { "op": "replace", "path": "/name", "value": "a" }
+                                ]
+                               """,
+                        List.of("name")
+                ));
+    }
+
+    @Test
+    @DisplayName("partial update should throw ResourceConflictException when normalized name already exists")
+    void partialUpdate_shouldThrowResourceConflicException_whenNormalizedNameExists() throws Exception {
+        String patchJson = """
+                [
+                    { "op": "replace", "path": "/name", "value": "%s" }
+                ]
+                """.formatted(existingNormalizedName);
+
+        JsonPatch patch = JsonPatch.fromJson(objectMapper.readTree(patchJson));
+
+        assertThrows(ResourceConflictException.class, () -> {
+            productService.partialUpdateProduct(existingId, patch);
+        });
+
+        verify(productRepository, times(1)).findById(existingId);
+        verify(productRepository, never()).saveAndFlush(any(Product.class));
+    }
+
+    @ParameterizedTest(name = "should update product successfully {0}")
+    @MethodSource("provideValidPatchScenarios")
+    @DisplayName("partialUpdateProduct should succeed for various valid patch operations")
+    void partialUpdate_shouldUpdateProductSuccessfully_forValidScenarios(
+            String scenarioName, String patchJson, Consumer<ProductDTO> assertionLogic) throws Exception {
+
+        JsonPatch patch = JsonPatch.fromJson(objectMapper.readTree(patchJson));
+
+        ProductDTO updatedProduct = productService.partialUpdateProduct(existingId, patch);
+
+        assertNotNull(updatedProduct);
+
+        assertionLogic.accept(updatedProduct);
+
+        verify(productRepository, times(1)).findById(existingId);
+        verify(productRepository, times(1)).saveAndFlush(any(Product.class));
+    }
+
+    private static Stream<Arguments> provideValidPatchScenarios() {
+        return Stream.of(
+                Arguments.of(
+                        "when removing description and updating stock and price",
+                        """
+                        [
+                            { "op": "remove", "path": "/description" },
+                            { "op": "replace", "path": "/stock", "value": 200 },
+                            { "op": "replace", "path": "/price", "value": 15.90 }
+                        ]
+                        """,
+                        (Consumer<ProductDTO>) dto -> {
+                            assertAll(
+                                    () -> assertNull(dto.description()),
+                                    () -> assertEquals(200, dto.stock()),
+                                    () -> assertEquals(new BigDecimal("15.90"), dto.price())
+                            );
+                        }
+                ),
+                Arguments.of(
+                        "when only updating stock",
+                        """
+                        [
+                            { "op": "replace", "path": "/stock", "value": 50 }
+                        ]
+                        """,
+                        (Consumer<ProductDTO>) dto -> assertEquals(50, dto.stock())
+                )
+        );
     }
 }
