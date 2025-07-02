@@ -112,4 +112,30 @@ public class CouponControllerIT {
         result.andExpect(jsonPath("$.errors[0].fieldName").value("value"));
         result.andExpect(jsonPath("$.errors[0].message").value("For percent type, value must be between 1 and 80."));
     }
+
+    @Test
+    void getAllCoupons_ShouldReturnOk_WhenNotOnlyValid() throws Exception {
+        ResultActions result = mockMvc.perform(get("/api/v1/coupons")
+                .accept(MediaType.APPLICATION_JSON));
+
+        result.andExpect(status().isOk());
+        result.andExpect(jsonPath("$").isArray());
+        result.andExpect(jsonPath("$[0].code").value("promo10"));
+        result.andExpect(jsonPath("$[1].code").value("desconto25"));
+        result.andExpect(jsonPath("$[2].code").value("superoferta"));
+        result.andExpect(jsonPath("$[8].code").value("limite10"));
+    }
+
+    @Test
+    void getAllCoupons_ShouldReturnOkAndValidCoupons_WhenOnlyValidTrue() throws Exception {
+        ResultActions result = mockMvc.perform(get("/api/v1/coupons?onlyValid=true")
+                .accept(MediaType.APPLICATION_JSON));
+
+        result.andExpect(status().isOk());
+        result.andExpect(jsonPath("$").isArray());
+        result.andExpect(jsonPath("$[0].code").value("promo10"));
+        result.andExpect(jsonPath("$[1].code").value("desconto25"));
+        result.andExpect(jsonPath("$[2].code").value("superoferta"));
+        result.andExpect(jsonPath("$[8].code").value("teste01"));
+    }
 }
