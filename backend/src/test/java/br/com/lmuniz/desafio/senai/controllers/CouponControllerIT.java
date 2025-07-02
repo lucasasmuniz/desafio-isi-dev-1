@@ -165,4 +165,20 @@ public class CouponControllerIT {
         result.andExpect(jsonPath("$.error").value("Resource not found exception"));
         result.andExpect(jsonPath("$.message").value("Coupon with ID %d not found".formatted(nonExistingId)));
     }
+
+    @Test
+    void deleteCoupon_ShouldReturnNoContent_WhenCouponExists() throws Exception {
+        ResultActions result = mockMvc.perform(delete("/api/v1/coupons/{id}", existingId));
+
+        result.andExpect(status().isNoContent());
+    }
+
+    @Test
+    void deleteCoupon_ShouldReturnNotFound_WhenCouponDoesNotExists() throws Exception {
+        ResultActions result = mockMvc.perform(delete("/api/v1/coupons/{id}", nonExistingId));
+
+        result.andExpect(status().isNotFound());
+        result.andExpect(jsonPath("$.error").value("Resource not found exception"));
+        result.andExpect(jsonPath("$.message").value("Coupon with ID %d not found".formatted(nonExistingId)));
+    }
 }
