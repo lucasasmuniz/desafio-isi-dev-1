@@ -181,4 +181,71 @@ public class CouponControllerIT {
         result.andExpect(jsonPath("$.error").value("Resource not found exception"));
         result.andExpect(jsonPath("$.message").value("Coupon with ID %d not found".formatted(nonExistingId)));
     }
+
+    @Test
+    void partialUpdateCoupon_ShouldReturnBadRequest_WhenRequiredFieldsRemoved() throws Exception {
+        String patchString = """
+        [
+            { "op": "remove", "path": "/validUntil" },
+            { "op": "remove", "path": "/validFrom" },
+            { "op": "remove", "path": "/type" },
+            { "op": "remove", "path": "/value" }
+        ]
+        """;
+
+        ResultActions result = mockMvc.perform(patch("/api/v1/coupons/{id}", existingId)
+                .content(patchString)
+                .contentType("application/json-patch+json")
+                .accept(MediaType.APPLICATION_JSON));
+
+        result.andExpect(status().isBadRequest());
+        result.andExpect(jsonPath("$.error").value("Validation error"));
+        result.andExpect(jsonPath("$.message").value("One or more fields are invalid. Please check the 'errors' list."));
+        result.andExpect(jsonPath("$.errors[0].fieldName").value("validUntil"));
+        result.andExpect(jsonPath("$.errors[1].fieldName").value("validFrom"));
+        result.andExpect(jsonPath("$.errors[2].fieldName").value("type"));
+        result.andExpect(jsonPath("$.errors[3].fieldName").value("value"));
+    }
+
+    @Test
+    void partialUpdateCoupon_ShouldReturnNotFound_WhenCouponDoesNotExists() throws Exception {
+        String patchString = """
+        [
+            { "op": "replace", "path": "/value", "value": "50" }
+        ]
+        """;
+
+
+
+        ResultActions result = mockMvc.perform(patch("/api/v1/coupons/{id}", nonExistingId)
+                .content(patchString)
+                .contentType("application/json-patch+json")
+                .accept(MediaType.APPLICATION_JSON));
+
+        result.andExpect(status().isNotFound());
+        result.andExpect(jsonPath("$.error").value("Resource not found exception"));
+        result.andExpect(jsonPath("$.message").value("Coupon with ID %d not found.".formatted(nonExistingId)));
+    }
+
+    @Test
+    void partialUpdateCoupon_ShouldReturnOk_WhenValidPatch() throws Exception {
+        int price = 50;
+        String type = "percent";
+
+        String patchString = """
+        [
+            { "op": "replace", "path": "/value", "value": %d },
+            { "op": "replace", "path": "/type", "value": "%s" }
+        ]
+        """.formatted(price, type);
+
+        ResultActions result = mockMvc.perform(patch("/api/v1/coupons/{id}", existingId)
+                .content(patchString)
+                .contentType("application/json-patch+json")
+                .accept(MediaType.APPLICATION_JSON));
+
+        result.andExpect(status().isOk());
+        result.andExpect(jsonPath("$.type").value(type));
+        result.andExpect(jsonPath("$.value").value(price));
+    }
 }
