@@ -15,4 +15,15 @@ public class ProductFactory {
 
         return product;
     }
+
+    public static Product createProduct(Long id, String name, String description, BigDecimal price, int stock) {
+        Product product = new Product();
+        product.setId(id);
+        product.setName(name);
+        product.setDescription(description);
+        product.setPrice(price);
+        product.setStock(stock);
+
+        return product;
+    }
 }

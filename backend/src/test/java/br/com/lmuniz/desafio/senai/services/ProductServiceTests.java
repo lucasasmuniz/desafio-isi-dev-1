@@ -13,6 +13,7 @@ import br.com.lmuniz.desafio.senai.repositories.CouponRepository;
 import br.com.lmuniz.desafio.senai.repositories.ProductCouponApplicationRepository;
 import br.com.lmuniz.desafio.senai.repositories.ProductDirectDiscountApplicationRepository;
 import br.com.lmuniz.desafio.senai.repositories.ProductRepository;
+import br.com.lmuniz.desafio.senai.repositories.specifications.ProductSpecification;
 import br.com.lmuniz.desafio.senai.services.exceptions.*;
 import br.com.lmuniz.desafio.senai.tests.CouponFactory;
 import br.com.lmuniz.desafio.senai.tests.ProductDiscountApplicationsFactory;
@@ -31,6 +32,11 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import java.math.BigDecimal;
@@ -92,7 +98,7 @@ public class ProductServiceTests {
         coupon = CouponFactory.createCoupon();
         coupon.setUsesCount(2);
         productDirectDiscountApplication = ProductDiscountApplicationsFactory.createProductDirectDiscountApplication(product);
-        productCouponApplication = ProductDiscountApplicationsFactory.createProductCouponApplication(product,coupon);
+        productCouponApplication = ProductDiscountApplicationsFactory.createProductCouponApplication(product, coupon);
 
         when(productRepository.existsByNormalizedName(nonExistingNormalizedName)).thenReturn(false);
         when(productRepository.existsByNormalizedName(existingNormalizedName)).thenReturn(true);
@@ -100,8 +106,10 @@ public class ProductServiceTests {
         when(productRepository.saveAndFlush(any(Product.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(productRepository.findById(existingId)).thenReturn(Optional.of(product));
         when(productRepository.findById(nonExistingId)).thenReturn(Optional.empty());
+
         when(couponRepository.findByCode(couponValidNormalizedCode)).thenReturn(coupon);
         when(couponRepository.findByCode(couponInvalidNormalizedCode)).thenReturn(null);
+
         when(productCouponApplicationRepository.save(any(ProductCouponApplication.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(productDirectDiscountApplicationRepository.save(any(ProductDirectDiscountApplication.class))).thenAnswer(invocation -> invocation.getArgument(0));
     }
@@ -679,6 +687,108 @@ public class ProductServiceTests {
                         ]
                         """,
                         (Consumer<ProductDTO>) dto -> assertEquals(50, dto.stock())
+                )
+        );
+    }
+
+    @Test
+    @DisplayName("findAllProducts should return page of products filtered when given params")
+    void findAllProducts_ShouldReturnPageOfProductsFiltered_WhenGivenParams() {
+        Pageable pageable = PageRequest.of(0, 10);
+        String search = "teste";
+        BigDecimal minPrice = BigDecimal.ONE;
+        BigDecimal maxPrice = BigDecimal.valueOf(100);
+        Boolean hasDiscount = true;
+        Boolean includeDeleted = true;
+        Boolean onlyOutOfStock = false;
+        Boolean withCouponApplied = true;
+
+        Product productWithDirectDiscount = ProductFactory.createProduct(2L, "Test Product 2", "Another test product", BigDecimal.valueOf(50), 0);
+        Product productWithNoDiscount = ProductFactory.createProduct(3L, "Test Product 3", "Another test product no discount", BigDecimal.valueOf(40), 12);
+        productDirectDiscountApplication.setProduct(productWithDirectDiscount);
+
+        when(productCouponApplicationRepository.findAllByProductIdInAndRemovedAtIsNull(any())).thenReturn(List.of(productCouponApplication));
+        when(productDirectDiscountApplicationRepository.findAllByProductIdInAndRemovedAtIsNull(any())).thenReturn(List.of(productDirectDiscountApplication));
+
+        Page<Product> productPage = new PageImpl<>(List.of(product, productWithDirectDiscount, productWithNoDiscount));
+        when(productRepository.findAll((Specification<Product>) any(), (Pageable) any())).thenReturn(productPage);
+
+        Page<ProductDiscountDTO> result = productService.getAllProducts(
+                pageable, search, minPrice, maxPrice, hasDiscount, includeDeleted, onlyOutOfStock, withCouponApplied);
+
+        assertNotNull(result);
+        assertEquals(productPage.getTotalElements() - 2, result.getTotalElements());
+        assertEquals(productPage.getTotalPages(), result.getTotalPages());
+        assertEquals(product.getName(), result.getContent().getFirst().name());
+
+        verify(productRepository, times(1)).findAll(any(Specification.class), any(Pageable.class));
+    }
+
+
+    @ParameterizedTest(name = "getAllProducts should return page {0}")
+    @MethodSource("provideGetAllProductsScenarios")
+    @DisplayName("getAllProducts should return correctly filtered and paged products")
+    void getAllProducts_shouldReturnCorrectlyFilteredAndPagedProducts(
+            String scenarioName,
+            Page<Product> mockedProductPage,
+            Pageable pageable,
+            String search,
+            BigDecimal minPrice,
+            BigDecimal maxPrice,
+            Boolean hasDiscount,
+            Boolean includeDeleted,
+            Boolean onlyOutOfStock,
+            Boolean withCouponApplied,
+            Consumer<Page<ProductDiscountDTO>> assertionLogic
+    ) {
+
+        when(productRepository.findAll(any(Specification.class), any(Pageable.class)))
+                .thenReturn(mockedProductPage);
+
+        when(productCouponApplicationRepository.findAllByProductIdInAndRemovedAtIsNull(any())).thenReturn(List.of());
+        when(productDirectDiscountApplicationRepository.findAllByProductIdInAndRemovedAtIsNull(any())).thenReturn(List.of());
+
+        Page<ProductDiscountDTO> result = productService.getAllProducts(
+                pageable, search, minPrice, maxPrice, hasDiscount, includeDeleted, onlyOutOfStock, withCouponApplied);
+
+        assertNotNull(result);
+
+        assertionLogic.accept(result);
+        verify(productRepository, times(1)).findAll(any(Specification.class), any(Pageable.class));
+    }
+
+    private static Stream<Arguments> provideGetAllProductsScenarios() {
+        Pageable pageable = PageRequest.of(0, 10);
+        Product product1 = ProductFactory.createProduct(1L, "Product with coupon", "Desc", BigDecimal.valueOf(100), 10);
+        Product product2 = ProductFactory.createProduct(2L, "Product with direct discount", "Desc", BigDecimal.valueOf(150), 0);
+        Product product3 = ProductFactory.createProduct(3L, "Product with no discount", "Desc", BigDecimal.valueOf(50), 20);
+
+        return Stream.of(
+                Arguments.of(
+                        "when just 'out of stock' and expecting empty result",
+                        new PageImpl<Product>(List.of()),
+                        pageable, "", null, null, false, false, true, null,
+                        (Consumer<Page<ProductDiscountDTO>>) page -> {
+                            assertTrue(page.isEmpty());
+                        }
+                ),
+                Arguments.of(
+                        "when price filter is applied and no coupon filter",
+                        new PageImpl<>(List.of(product1, product2, product3)),
+                        pageable, null, BigDecimal.ONE, new BigDecimal("200"), null, null, null, false,
+                        (Consumer<Page<ProductDiscountDTO>>) page -> {
+                            assertEquals(3, page.getTotalElements());
+                            assertTrue(page.getContent().stream().anyMatch(p -> p.name().equals("Product with no discount")));
+                        }
+                ),
+                Arguments.of(
+                        "when text search and hasDiscount are applied",
+                        new PageImpl<>(List.of(product1, product2)),
+                        pageable, "product", null, null, true, false, false, null,
+                        (Consumer<Page<ProductDiscountDTO>>) page -> {
+                            assertEquals(2, page.getTotalElements());
+                            assertTrue(page.getContent().stream().allMatch(p -> p.discount() != null));
+                        }
                 )
         );
     }
