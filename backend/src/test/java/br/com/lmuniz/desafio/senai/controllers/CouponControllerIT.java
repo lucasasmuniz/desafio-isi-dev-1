@@ -33,12 +33,17 @@ public class CouponControllerIT {
     @Autowired
     private ObjectMapper objectMapper;
 
+    private Long existingId;
+    private Long nonExistingId;
     private Coupon coupon;
-    private String existingCouponCode = "PRIMEIRACOMPRA";
+    private String existingCouponCode;
 
     @BeforeEach
     void setUp() {
         coupon = CouponFactory.createCoupon();
+        existingId = 1L;
+        nonExistingId = 999L;
+        existingCouponCode = "PRIMEIRACOMPRA";
     }
 
     @Test
@@ -137,5 +142,27 @@ public class CouponControllerIT {
         result.andExpect(jsonPath("$[1].code").value("desconto25"));
         result.andExpect(jsonPath("$[2].code").value("superoferta"));
         result.andExpect(jsonPath("$[8].code").value("teste01"));
+    }
+
+    @Test
+    void getCouponById_ShouldReturnOk_WhenCouponExists() throws Exception {
+        ResultActions result = mockMvc.perform(get("/api/v1/coupons/{id}", existingId)
+                .accept(MediaType.APPLICATION_JSON));
+
+        result.andExpect(status().isOk());
+        result.andExpect(jsonPath("$.id").value(existingId));
+        result.andExpect(jsonPath("$.code").value("promo10"));
+        result.andExpect(jsonPath("$.type").value("percent"));
+    }
+
+
+    @Test
+    void getCouponById_ShouldReturnNotFound_WhenCouponDoesNotExists() throws Exception {
+        ResultActions result = mockMvc.perform(get("/api/v1/coupons/{id}", nonExistingId)
+                .accept(MediaType.APPLICATION_JSON));
+
+        result.andExpect(status().isNotFound());
+        result.andExpect(jsonPath("$.error").value("Resource not found exception"));
+        result.andExpect(jsonPath("$.message").value("Coupon with ID %d not found".formatted(nonExistingId)));
     }
 }
