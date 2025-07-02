@@ -166,8 +166,10 @@ public class CouponService {
     }
 
     private void validateBusinessRules(Coupon entity, Long id, Map<String, String> errors) {
-        if (couponRepository.findByCodeAndIdNot(entity.getCode(), id).isPresent()) {
-            throw new ResourceConflictException("Coupon with code '" + entity.getCode() + "' already exists");
+        if (entity.getId() != null){
+            if (couponRepository.findByCodeAndIdNot(entity.getCode(), id).isPresent()) {
+                throw new ResourceConflictException("Coupon with code '" + entity.getCode() + "' already exists");
+            }
         }
 
         List<String> reservedCodes = List.of("admin", "auth", "null", "undefined");
