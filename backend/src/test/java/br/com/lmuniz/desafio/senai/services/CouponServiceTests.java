@@ -232,7 +232,7 @@ public class CouponServiceTests {
 
     @Test
     @DisplayName("partialUpdateCoupon should throw DatabaseException when coupon uses count would be negative")
-    void partialUpdateCoupon_ShouldThrowDatabaseException_WhenCouponNegativeUsesCount() throws Exception{
+    void partialUpdateCoupon_ShouldThrowDatabaseException_WhenCouponNegativeUsesCount() throws Exception {
         String patchJson = """
                 [
                     { "op": "replace", "path": "/value", "value": 8 }
@@ -255,7 +255,7 @@ public class CouponServiceTests {
     @MethodSource("provideValidPatches")
     @DisplayName("partialUpdateCoupon should update coupon when patch is valid")
     void partialUpdateCoupon_shouldUpdateCoupon_whenPatchIsValid(
-            String scenarioName, String patchJson) throws Exception{
+            String scenarioName, String patchJson) throws Exception {
         JsonPatch patch = JsonPatch.fromJson(objectMapper.readTree(patchJson));
 
         CouponDetailsDTO result = assertDoesNotThrow(() -> {
@@ -274,40 +274,48 @@ public class CouponServiceTests {
                 Arguments.of(
                         "when updating type and value",
                         """
-                            [
-                                { "op": "replace", "path": "/type", "value": "percent" },
-                                { "op": "replace", "path": "/value", "value": "50" }
-                            ]
-                            """),
+                                [
+                                    { "op": "replace", "path": "/type", "value": "percent" },
+                                    { "op": "replace", "path": "/value", "value": "50" }
+                                ]
+                                """),
                 Arguments.of(
                         "when updating type and value",
                         """
-                                [
-                                    { "op": "replace", "path": "/maxUses", "value": 500 }
-                                ]
-                            """)
+                                    [
+                                        { "op": "replace", "path": "/type", "value": "fixed" },
+                                        { "op": "replace", "path": "/maxUses", "value": 500 }
+                                    ]
+                                """)
                 ,
                 Arguments.of(
                         "when updating type and value",
                         """
+                                    [
+                                      { "op": "replace", "path": "/type", "value": "percent" }
+                                    ]
+                                """),
+                Arguments.of(
+                        "when updating type and value",
+                        """
                                 [
-                                  { "op": "replace", "path": "/type", "value": "percent" }
+                                  { "op": "replace", "path": "/value", "value": 50 }
                                 ]
-                            """),
+                                """),
                 Arguments.of(
                         "when updating type and value",
                         """
-                            [
-                              { "op": "replace", "path": "/value", "value": 50 }
-                            ]
-                            """),
+                                [
+                                  { "op": "replace", "path": "/code", "value": "sameCode" }
+                                ]
+                                """),
                 Arguments.of(
                         "when updating type and value",
                         """
-                            [
-                              { "op": "replace", "path": "/code", "value": "sameCode" }
-                            ]
-                            """)
+                                [
+                                    { "op": "replace", "path": "/code", "value": "newCode" }
+                                ]
+                                """)
         );
     }
 
@@ -340,49 +348,49 @@ public class CouponServiceTests {
                 Arguments.of(
                         "when value is invalid and dates are inverted",
                         """
-                               [
-                                  { "op": "replace", "path": "/maxUses", "value": 3 },
-                                  { "op": "replace", "path": "/oneShot", "value": "true" },
-                                  { "op": "replace", "path": "/usesCount", "value": 7 },
-                                  { "op": "replace", "path": "/type", "value": "percent" },
-                                  { "op": "replace", "path": "/value", "value": 90 },
-                                  { "op": "replace", "path": "/validFrom", "value": "2025-06-29T00:00:00Z" },
-                                  { "op": "replace", "path": "/validUntil", "value": "2025-06-27T00:00:00Z" }
-                                ]
-                               """,
-                        List.of("maxUses", "oneShot","value","validFrom","validUntil")
+                                [
+                                   { "op": "replace", "path": "/maxUses", "value": 3 },
+                                   { "op": "replace", "path": "/oneShot", "value": "true" },
+                                   { "op": "replace", "path": "/usesCount", "value": 7 },
+                                   { "op": "replace", "path": "/type", "value": "percent" },
+                                   { "op": "replace", "path": "/value", "value": 90 },
+                                   { "op": "replace", "path": "/validFrom", "value": "2025-06-29T00:00:00Z" },
+                                   { "op": "replace", "path": "/validUntil", "value": "2025-06-27T00:00:00Z" }
+                                 ]
+                                """,
+                        List.of("maxUses", "oneShot", "value", "validFrom", "validUntil")
                 ),
                 Arguments.of(
                         "when maxUses conflicts with oneShot and usesCount",
                         """
-                            [
-                                { "op": "replace", "path": "/oneShot", "value": "false" },
-                                { "op": "replace", "path": "/usesCount", "value": 7 },
-                                { "op": "replace", "path": "/maxUses", "value": 3 },
-                                { "op": "replace", "path": "/type", "value": "invalidType" },
-                                { "op": "replace", "path": "/value", "value": 90 }
-                            ]
-                            """,
+                                [
+                                    { "op": "replace", "path": "/oneShot", "value": "false" },
+                                    { "op": "replace", "path": "/usesCount", "value": 7 },
+                                    { "op": "replace", "path": "/maxUses", "value": 3 },
+                                    { "op": "replace", "path": "/type", "value": "invalidType" },
+                                    { "op": "replace", "path": "/value", "value": 90 }
+                                ]
+                                """,
                         List.of("maxUses", "type")
                 ),
                 Arguments.of(
                         "when fixed coupon value is negative",
                         """
-                            [
-                                { "op": "replace", "path": "/type", "value": "fixed" },
-                                { "op": "replace", "path": "/value", "value": -4 }
-                            ]
-                            """,
+                                [
+                                    { "op": "replace", "path": "/type", "value": "fixed" },
+                                    { "op": "replace", "path": "/value", "value": -4 }
+                                ]
+                                """,
                         List.of("value")
                 ),
                 Arguments.of(
                         "when percent coupon value is less than 1",
                         """
-                            [
-                                { "op": "replace", "path": "/type", "value": "percent" },
-                                { "op": "replace", "path": "/value", "value": 0.3 }
-                            ]
-                            """,
+                                [
+                                    { "op": "replace", "path": "/type", "value": "percent" },
+                                    { "op": "replace", "path": "/value", "value": 0.3 }
+                                ]
+                                """,
                         List.of("value")
                 ),
                 Arguments.of(
@@ -398,7 +406,7 @@ public class CouponServiceTests {
                                     { "op": "remove", "path": "/validUntil" }
                                 ]
                                 """,
-                        List.of("value", "validUntil","maxUses")
+                        List.of("value", "validUntil", "maxUses")
                 ),
                 Arguments.of(
                         "when type is invalid and date range exceeds 5 years",
@@ -413,14 +421,14 @@ public class CouponServiceTests {
                 Arguments.of(
                         "when removing multiples required fields",
                         """
-                        [
-                            { "op": "remove", "path": "/type"},
-                            { "op": "remove", "path": "/value" },
-                            { "op": "remove", "path": "/validFrom" },
-                            { "op": "remove", "path": "/validUntil" }
-                        ]
-                        """,
-                        List.of("type", "value","validFrom", "validUntil")
+                                [
+                                    { "op": "remove", "path": "/type"},
+                                    { "op": "remove", "path": "/value" },
+                                    { "op": "remove", "path": "/validFrom" },
+                                    { "op": "remove", "path": "/validUntil" }
+                                ]
+                                """,
+                        List.of("type", "value", "validFrom", "validUntil")
                 )
         );
     }
