@@ -1,10 +1,13 @@
 package br.com.lmuniz.desafio.senai.controllers;
 
+import br.com.lmuniz.desafio.senai.domains.dtos.coupons.CouponCodeDTO;
 import br.com.lmuniz.desafio.senai.domains.dtos.products.ProductDTO;
 import br.com.lmuniz.desafio.senai.domains.entities.Product;
 import br.com.lmuniz.desafio.senai.tests.ProductFactory;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -12,6 +15,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Map;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -33,6 +38,7 @@ public class ProductControllerIT {
     private Long existingId;
     private Long nonExistingId;
     private Long deletedProductId;
+    private Long cheapProductId;
 
     @BeforeEach
     void setUp(){
@@ -41,9 +47,11 @@ public class ProductControllerIT {
         existingId = 1L;
         nonExistingId = 999L;
         deletedProductId = 9L;
+        cheapProductId = 4L;
     }
 
     @Test
+    @DisplayName("createProduct should return 409 Conflict when product name already exists")
     void createProduct_ShouldReturnConflict_WhenProductNormalizedNameAlreadyExists() throws Exception {
         product.setName(existingName);
         ProductDTO productDTO = new ProductDTO(product);
@@ -59,6 +67,7 @@ public class ProductControllerIT {
     }
 
     @Test
+    @DisplayName("createProduct should return 400 Bad Request for invalid fields")
     void createProduct_ShouldReturnBadRequest_WhenInvalidProductFields() throws Exception {
         product.setName("/");
         product.setDescription("*".repeat(301));
@@ -77,6 +86,7 @@ public class ProductControllerIT {
     }
 
     @Test
+    @DisplayName("createProduct should return 201 Created with valid data")
     void createProduct_ShouldReturnCreated_WhenValidProduct() throws Exception {
         ProductDTO productDTO = new ProductDTO(product);
         String jsonBody = objectMapper.writeValueAsString(productDTO);
@@ -94,6 +104,7 @@ public class ProductControllerIT {
     }
 
     @Test
+    @DisplayName("deleteProduct should return 204 No Content on successful soft-delete")
     void deleteProduct_ShouldReturnNoContent_WhenSoftDeleteProduct() throws Exception {
         ResultActions result = mockMvc.perform(delete("/api/v1/products/%d".formatted(existingId))
                 .contentType("application/json"));
@@ -102,6 +113,7 @@ public class ProductControllerIT {
     }
 
     @Test
+    @DisplayName("deleteProduct should return 404 Not Found for a non-existent ID")
     void deleteProduct_ShouldReturnNotFound_WhenProductDoesNotExist() throws Exception {
         ResultActions result = mockMvc.perform(delete("/api/v1/products/%d".formatted(nonExistingId))
                 .contentType("application/json"));
@@ -112,6 +124,7 @@ public class ProductControllerIT {
     }
 
     @Test
+    @DisplayName("restoreProduct should return 200 OK when restoring an soft-deleted product")
     void restoreProduct_ShouldReturnOk_WhenProductExistsAndDeleted() throws Exception {
         ResultActions result = mockMvc.perform(post("/api/v1/products/%d/restore".formatted(deletedProductId))
                 .contentType("application/json"));
@@ -124,7 +137,8 @@ public class ProductControllerIT {
     }
 
     @Test
-    void restoreProduct_ShouldReturnNotFound_WhenProductDoesNotExists() throws Exception {
+    @DisplayName("restoreProduct should return 404 Not Found for a non-existent ID")
+    void restoreProduct_ShouldReturnNotFound_WhenProductDoesNotExist() throws Exception {
         ResultActions result = mockMvc.perform(post("/api/v1/products/%d/restore".formatted(nonExistingId))
                 .contentType("application/json"));
 
@@ -134,6 +148,7 @@ public class ProductControllerIT {
     }
 
     @Test
+    @DisplayName("restoreProduct should return 400 Bad Request when trying to restore an already active product")
     void restoreProduct_ShouldReturnBadRequest_WhenProductExistsAndNotDeleted() throws Exception {
         ResultActions result = mockMvc.perform(post("/api/v1/products/%d/restore".formatted(existingId))
                 .contentType("application/json"));
@@ -144,6 +159,7 @@ public class ProductControllerIT {
     }
 
     @Test
+    @DisplayName("getProductById should return 200 OK with product details when ID exists")
     void getProductById_ShouldReturnOk_WhenProductExists() throws Exception {
         ResultActions result = mockMvc.perform(get("/api/v1/products/%d".formatted(existingId))
                 .contentType("application/json"));
@@ -156,6 +172,7 @@ public class ProductControllerIT {
     }
 
     @Test
+    @DisplayName("getProductById should return 404 Not Found for a non-existent ID")
     void getProductById_ShouldReturnNotFound_WhenProductDoesNotExist() throws Exception {
         ResultActions result = mockMvc.perform(get("/api/v1/products/%d".formatted(nonExistingId))
                 .contentType("application/json"));
@@ -163,5 +180,97 @@ public class ProductControllerIT {
         result.andExpect(status().isNotFound());
         result.andExpect(jsonPath("$.error").value("Resource not found exception"));
         result.andExpect(jsonPath("$.message").value("Product with id '%d' not found.".formatted(nonExistingId)));
+    }
+
+    @Test
+    @DisplayName("applyCouponDiscount should return 404 Not Found for a non-existent coupon code")
+    void applyCouponDiscount_ShouldReturnResourceNotFound_WhenCouponDoesNotExist() throws Exception {
+        CouponCodeDTO couponCodeDTO = new CouponCodeDTO("INVALIDCODE");
+        String jsonBody = objectMapper.writeValueAsString(couponCodeDTO);
+
+        ResultActions result = mockMvc.perform(post("/api/v1/products/%d/discount/coupon".formatted(existingId))
+                .contentType("application/json")
+                .content(jsonBody));
+
+        result.andExpect(status().isNotFound());
+        result.andExpect(jsonPath("$.error").value("Resource not found exception"));
+        result.andExpect(jsonPath("$.message").value("Coupon with code '%s' not found.".formatted(couponCodeDTO.code())));
+
+    }
+
+    @Test
+    @DisplayName("applyCouponDiscount should return 404 Not Found for a non-existent product ID")
+    void applyCouponDiscount_ShouldReturnResourceNotFound_WhenProductDoesNotExist() throws Exception {
+        CouponCodeDTO couponCodeDTO = new CouponCodeDTO("PRIMEIRACOMPRA");
+        String jsonBody = objectMapper.writeValueAsString(couponCodeDTO);
+
+        ResultActions result = mockMvc.perform(post("/api/v1/products/%d/discount/coupon".formatted(nonExistingId))
+                .contentType("application/json")
+                .content(jsonBody));
+
+        result.andExpect(status().isNotFound());
+        result.andExpect(jsonPath("$.error").value("Resource not found exception"));
+        result.andExpect(jsonPath("$.message").value("Product with id '%d' not found.".formatted(nonExistingId)));
+    }
+
+    @Test
+    @DisplayName("applyCouponDiscount should return 400 Bad Request for an invalid coupon")
+    void applyCouponDiscount_ShouldReturnBadRequest_WhenCouponInvalid() throws Exception {
+        CouponCodeDTO couponCodeDTO = new CouponCodeDTO("EMBREVE");
+        String jsonBody = objectMapper.writeValueAsString(couponCodeDTO);
+
+        ResultActions result = mockMvc.perform(post("/api/v1/products/%d/discount/coupon".formatted(existingId))
+                .contentType("application/json")
+                .content(jsonBody));
+
+        result.andExpect(status().isBadRequest());
+        result.andExpect(jsonPath("$.error").value("Business rule exception"));
+        result.andExpect(jsonPath("$.message").value("Coupon is not valid for the current date."));
+    }
+
+    @Test
+    @DisplayName("applyCouponDiscount should return 409 Conflict when reusing a one-shot coupon")
+    void applyCouponDiscount_ShouldReturnConflict_WhenCouponOneShotAlreadyUsed() throws Exception {
+        CouponCodeDTO couponCodeDTO = new CouponCodeDTO("ONESHOTUSADO");
+        String jsonBody = objectMapper.writeValueAsString(couponCodeDTO);
+
+        ResultActions result = mockMvc.perform(post("/api/v1/products/%d/discount/coupon".formatted(existingId))
+                .contentType("application/json")
+                .content(jsonBody));
+
+        result.andExpect(status().isConflict());
+        result.andExpect(jsonPath("$.error").value("Resource conflict exception"));
+        result.andExpect(jsonPath("$.message").value("Coupon is one-shot and has already been used."));
+    }
+
+    @Test
+    @DisplayName("applyCouponDiscount should return 200 OK when applying a valid coupon")
+    void applyCouponDiscount_ShouldReturnUnprocessableEntity_WhenFinalPriceInvalid() throws Exception {
+        CouponCodeDTO couponCodeDTO = new CouponCodeDTO("VALE50");
+        String jsonBody = objectMapper.writeValueAsString(couponCodeDTO);
+
+        ResultActions result = mockMvc.perform(post("/api/v1/products/%d/discount/coupon".formatted(cheapProductId))
+                .contentType("application/json")
+                .content(jsonBody));
+
+        result.andExpect(status().isUnprocessableEntity());
+        result.andExpect(jsonPath("$.error").value("Invalid price exception"));
+        result.andExpect(jsonPath("$.message").value("Final price after applying coupon cannot less than 0.01"));
+    }
+
+    @Test
+    @DisplayName("applyCouponDiscount should return 200 OK when applying a valid coupon")
+    void applyCouponDiscount_ShouldReturnOk_WhenValidCouponCode() throws Exception {
+        CouponCodeDTO couponCodeDTO = new CouponCodeDTO("PRIMEIRACOMPRA");
+        String jsonBody = objectMapper.writeValueAsString(couponCodeDTO);
+
+        ResultActions result = mockMvc.perform(post("/api/v1/products/%d/discount/coupon".formatted(existingId))
+                .contentType("application/json")
+                .content(jsonBody));
+
+        result.andExpect(status().isOk());
+        result.andExpect(jsonPath("$.id").value(existingId));
+        result.andExpect(jsonPath("$.discount").isNotEmpty());
+        result.andExpect(jsonPath("$.hasCouponApplied").value(true));
     }
 }
