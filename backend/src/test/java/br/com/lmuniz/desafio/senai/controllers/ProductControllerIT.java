@@ -5,7 +5,6 @@ import br.com.lmuniz.desafio.senai.domains.dtos.discounts.DirectPercentageDiscou
 import br.com.lmuniz.desafio.senai.domains.dtos.products.ProductDTO;
 import br.com.lmuniz.desafio.senai.domains.entities.Product;
 import br.com.lmuniz.desafio.senai.tests.ProductFactory;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -322,5 +321,14 @@ public class ProductControllerIT {
         result.andExpect(jsonPath("$.discount").isNotEmpty());
         result.andExpect(jsonPath("$.discount.value").value(directPercentageDiscountDTO.percentage()));
         result.andExpect(jsonPath("$.hasCouponApplied").value(false));
+    }
+
+    @Test
+    @DisplayName("removeDiscount should return 204 No Content when removing discount")
+    void removeDiscount_ShouldReturnNoContent_WhenRemovingDiscount() throws Exception {
+        ResultActions result = mockMvc.perform(delete("/api/v1/products/%d/discount".formatted(alreadyDiscountedProductId))
+                .contentType("application/json"));
+
+        result.andExpect(status().isNoContent());
     }
 }
