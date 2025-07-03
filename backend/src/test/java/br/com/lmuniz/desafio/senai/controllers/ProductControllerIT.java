@@ -33,6 +33,7 @@ public class ProductControllerIT {
     private String existingName;
     private Long existingId;
     private Long nonExistingId;
+    private Long deletedProductId;
 
     @BeforeEach
     void setUp(){
@@ -40,6 +41,7 @@ public class ProductControllerIT {
         existingName = "Moedor de Café Manual";
         existingId = 1L;
         nonExistingId = 999L;
+        deletedProductId = 9L;
     }
 
     @Test
@@ -108,5 +110,37 @@ public class ProductControllerIT {
         result.andExpect(status().isNotFound());
         result.andExpect(jsonPath("$.error").value("Resource not found exception"));
         result.andExpect(jsonPath("$.message").value("Product with id '%d' not found.".formatted(nonExistingId)));
+    }
+
+    @Test
+    void restoreProduct_ShouldReturnOk_WhenProductExistsAndDeleted() throws Exception {
+        ResultActions result = mockMvc.perform(post("/api/v1/products/%d/restore".formatted(deletedProductId))
+                .contentType("application/json"));
+
+        result.andExpect(status().isOk());
+        result.andExpect(jsonPath("$.id").value(deletedProductId));
+        result.andExpect(jsonPath("$.name").exists());
+        result.andExpect(jsonPath("$.stock").exists());
+        result.andExpect(jsonPath("$.price").exists());
+    }
+
+    @Test
+    void restoreProduct_ShouldReturnNotFound_WhenProductDoesNotExists() throws Exception {
+        ResultActions result = mockMvc.perform(post("/api/v1/products/%d/restore".formatted(nonExistingId))
+                .contentType("application/json"));
+
+        result.andExpect(status().isNotFound());
+        result.andExpect(jsonPath("$.error").value("Resource not found exception"));
+        result.andExpect(jsonPath("$.message").value("Product with id '%d' not found.".formatted(nonExistingId)));
+    }
+
+    @Test
+    void restoreProduct_ShouldReturnBadRequest_WhenProductExistsAndNotDeleted() throws Exception {
+        ResultActions result = mockMvc.perform(post("/api/v1/products/%d/restore".formatted(existingId))
+                .contentType("application/json"));
+
+        result.andExpect(status().isBadRequest());
+        result.andExpect(jsonPath("$.error").value("Business rule exception"));
+        result.andExpect(jsonPath("$.errors[0].message").value("Product is already active and cannot be restored."));
     }
 }

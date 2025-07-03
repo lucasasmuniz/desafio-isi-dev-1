@@ -11,7 +11,7 @@ INSERT INTO products (name, normalized_name, description, price, stock, created_
 ('Moedor de Café Manual', 'moedor de cafe manual', 'Lâminas de cerâmica para uma moagem precisa.', 89.90, 40, NOW(), NULL, NULL),
 ('Prensa Francesa 600ml', 'prensa francesa 600ml', 'Vidro de borossilicato e estrutura de aço inox.', 110.00, 25, NOW(), NULL, NULL),
 ('Bule Térmico 1L - Vermelho', 'bule termico 1l vermelho', 'Mantém a temperatura por até 12 horas.', 75.40, 0, NOW(), NULL, NULL),
-('Xícara de Porcelana Branca', 'xicara de porcelana branca', 'Design clássico e elegante.', 12.00, 120, NOW(), NULL, NULL),
+('Xícara de Porcelana Branca', 'xicara de porcelana branca', 'Design clássico e elegante.', 12.00, 120, NOW(), NULL, NOW()),
 ('Leiteira de Alumínio 1.5L', 'leiteira de aluminio 1.5l', 'Ferve o leite de forma rápida e segura.', 35.00, 60, NOW(), DATEADD('DAY', -1, NOW()), NULL); -- Corrigido aqui
 
 
