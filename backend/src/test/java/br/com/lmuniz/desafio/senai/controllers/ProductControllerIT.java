@@ -13,8 +13,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -142,5 +141,27 @@ public class ProductControllerIT {
         result.andExpect(status().isBadRequest());
         result.andExpect(jsonPath("$.error").value("Business rule exception"));
         result.andExpect(jsonPath("$.errors[0].message").value("Product is already active and cannot be restored."));
+    }
+
+    @Test
+    void getProductById_ShouldReturnOk_WhenProductExists() throws Exception {
+        ResultActions result = mockMvc.perform(get("/api/v1/products/%d".formatted(existingId))
+                .contentType("application/json"));
+
+        result.andExpect(status().isOk());
+        result.andExpect(jsonPath("$.id").value(existingId));
+        result.andExpect(jsonPath("$.name").exists());
+        result.andExpect(jsonPath("$.stock").exists());
+        result.andExpect(jsonPath("$.price").exists());
+    }
+
+    @Test
+    void getProductById_ShouldReturnNotFound_WhenProductDoesNotExist() throws Exception {
+        ResultActions result = mockMvc.perform(get("/api/v1/products/%d".formatted(nonExistingId))
+                .contentType("application/json"));
+
+        result.andExpect(status().isNotFound());
+        result.andExpect(jsonPath("$.error").value("Resource not found exception"));
+        result.andExpect(jsonPath("$.message").value("Product with id '%d' not found.".formatted(nonExistingId)));
     }
 }
