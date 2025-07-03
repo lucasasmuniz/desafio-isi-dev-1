@@ -1,6 +1,5 @@
 package br.com.lmuniz.desafio.senai.controllers;
 
-import br.com.lmuniz.desafio.senai.domains.dtos.coupons.CouponDTO;
 import br.com.lmuniz.desafio.senai.domains.dtos.products.ProductDTO;
 import br.com.lmuniz.desafio.senai.domains.entities.Product;
 import br.com.lmuniz.desafio.senai.tests.ProductFactory;
@@ -14,6 +13,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -31,11 +31,15 @@ public class ProductControllerIT {
 
     private Product product;
     private String existingName;
+    private Long existingId;
+    private Long nonExistingId;
 
     @BeforeEach
     void setUp(){
         product = ProductFactory.createProduct();
         existingName = "Moedor de Café Manual";
+        existingId = 1L;
+        nonExistingId = 999L;
     }
 
     @Test
@@ -88,4 +92,21 @@ public class ProductControllerIT {
         result.andExpect(jsonPath("$.price").value(productDTO.price()));
     }
 
+    @Test
+    void deleteProduct_ShouldReturnNoContent_WhenSoftDeleteProduct() throws Exception {
+        ResultActions result = mockMvc.perform(delete("/api/v1/products/%d".formatted(existingId))
+                .contentType("application/json"));
+
+        result.andExpect(status().isNoContent());
+    }
+
+    @Test
+    void deleteProduct_ShouldReturnNotFound_WhenProductDoesNotExist() throws Exception {
+        ResultActions result = mockMvc.perform(delete("/api/v1/products/%d".formatted(nonExistingId))
+                .contentType("application/json"));
+
+        result.andExpect(status().isNotFound());
+        result.andExpect(jsonPath("$.error").value("Resource not found exception"));
+        result.andExpect(jsonPath("$.message").value("Product with id '%d' not found.".formatted(nonExistingId)));
+    }
 }
