@@ -281,7 +281,7 @@ Resposta
 * Mesmo após o encerramento da data de entrega, resolvi realizar os testes para deixar o projeto completo.
 * Os testes unitários foram realizados com o auxílio do plugin JaCoCo para uma cobertura de testes aprofundada.
 
-`![Relatório de Cobertura JaCoCo](https://github.com/user-attachments/assets/c6fb3ab1-0d46-49ed-9786-269f784dc983)`
+![Relatório de Cobertura JaCoCo](https://github.com/user-attachments/assets/c6fb3ab1-0d46-49ed-9786-269f784dc983)
 
 <h2 id="inicio-frontend">Frontend</h2>
 
