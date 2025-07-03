@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
@@ -331,4 +332,39 @@ public class ProductControllerIT {
 
         result.andExpect(status().isNoContent());
     }
+
+    @Test
+    @DisplayName("getAllProducts should return default page when no params are given")
+    void getAllProducts_shouldReturnDefaultPage_whenNoParams() throws Exception {
+        ResultActions result = mockMvc.perform(get("/api/v1/products")
+                .accept(MediaType.APPLICATION_JSON));
+
+        result.andExpect(status().isOk());
+        result.andExpect(jsonPath("$.content").isArray());
+        result.andExpect(jsonPath("$.totalElements").value(9));
+    }
+
+    @Test
+    @DisplayName("getAllProducts should return filtered products when search param is used")
+    void getAllProducts_shouldReturnFilteredProducts_whenSearchParamIsUsed() throws Exception {
+        ResultActions result = mockMvc.perform(get("/api/v1/products?search=café")
+                .accept(MediaType.APPLICATION_JSON));
+
+        result.andExpect(status().isOk());
+        result.andExpect(jsonPath("$.content[?(@.name == 'Cafeteira Elétrica Mondial')]").exists());
+        result.andExpect(jsonPath("$.content[?(@.name == 'Moedor de Café Manual')]").exists());
+        result.andExpect(jsonPath("$.totalElements").value(3));
+    }
+
+    @Test
+    @DisplayName("getAllProducts should return only discounted products when hasDiscount is true")
+    void getAllProducts_shouldReturnOnlyDiscountedProducts_whenHasDiscountIsTrue() throws Exception {
+        ResultActions result = mockMvc.perform(get("/api/v1/products?hasDiscount=true")
+                .accept(MediaType.APPLICATION_JSON));
+
+        result.andExpect(status().isOk());
+        result.andExpect(jsonPath("$.content").isNotEmpty());
+        result.andExpect(jsonPath("$.content[0].discount").exists());
+    }
+
 }
