@@ -42,3 +42,11 @@ INSERT INTO coupons (code, type, coupon_value, one_shot, max_uses, uses_count, v
 -- Cupons genéricos para teste de volume
 ('teste01', 'PERCENT', 5, false, NULL, 0, NOW(), DATEADD('YEAR', 1, NOW()), NOW(), NULL),
 ('teste02', 'FIXED', 2.50, false, 500, 0, NOW(), DATEADD('YEAR', 1, NOW()), NOW(), NULL);
+
+-- ================================================================= --
+-- Descontos diretos
+-- ================================================================= --
+
+INSERT INTO product_direct_discount_applications (discount_percentage, applied_at, product_id, removed_at) VALUES
+(25.00, NOW(), 5, NULL);
+

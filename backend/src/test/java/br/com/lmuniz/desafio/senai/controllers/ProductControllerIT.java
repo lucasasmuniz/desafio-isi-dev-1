@@ -1,6 +1,7 @@
 package br.com.lmuniz.desafio.senai.controllers;
 
 import br.com.lmuniz.desafio.senai.domains.dtos.coupons.CouponCodeDTO;
+import br.com.lmuniz.desafio.senai.domains.dtos.discounts.DirectPercentageDiscountDTO;
 import br.com.lmuniz.desafio.senai.domains.dtos.products.ProductDTO;
 import br.com.lmuniz.desafio.senai.domains.entities.Product;
 import br.com.lmuniz.desafio.senai.tests.ProductFactory;
@@ -16,7 +17,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Map;
+import java.math.BigDecimal;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -39,6 +40,7 @@ public class ProductControllerIT {
     private Long nonExistingId;
     private Long deletedProductId;
     private Long cheapProductId;
+    private Long alreadyDiscountedProductId;
 
     @BeforeEach
     void setUp(){
@@ -48,6 +50,7 @@ public class ProductControllerIT {
         nonExistingId = 999L;
         deletedProductId = 9L;
         cheapProductId = 4L;
+        alreadyDiscountedProductId = 5L;
     }
 
     @Test
@@ -272,5 +275,52 @@ public class ProductControllerIT {
         result.andExpect(jsonPath("$.id").value(existingId));
         result.andExpect(jsonPath("$.discount").isNotEmpty());
         result.andExpect(jsonPath("$.hasCouponApplied").value(true));
+    }
+
+    @Test
+    @DisplayName("applyDirectPercentDiscount should return 404 Not Found for a non-existent product ID")
+    void applyDirectPercentDiscount_ShouldReturnResourceNotFound_WhenProductDoesNotExist() throws Exception {
+        DirectPercentageDiscountDTO directPercentageDiscountDTO = new DirectPercentageDiscountDTO(BigDecimal.TEN);
+        String jsonBody = objectMapper.writeValueAsString(directPercentageDiscountDTO);
+
+        ResultActions result = mockMvc.perform(post("/api/v1/products/%d/discount/percent".formatted(nonExistingId))
+                .contentType("application/json")
+                .content(jsonBody));
+
+        result.andExpect(status().isNotFound());
+        result.andExpect(jsonPath("$.error").value("Resource not found exception"));
+        result.andExpect(jsonPath("$.message").value("Product with id '%d' not found.".formatted(nonExistingId)));
+    }
+
+    @Test
+    @DisplayName("applyDirectPercentDiscount should return 409 Conflict for a product already having a discount")
+    void applyDirectPercentDiscount_ShouldReturnConflict_WhenProductAlreadyHasDiscount() throws Exception {
+        DirectPercentageDiscountDTO directPercentageDiscountDTO = new DirectPercentageDiscountDTO(BigDecimal.TEN);
+        String jsonBody = objectMapper.writeValueAsString(directPercentageDiscountDTO);
+
+        ResultActions result = mockMvc.perform(post("/api/v1/products/%d/discount/percent".formatted(alreadyDiscountedProductId))
+                .contentType("application/json")
+                .content(jsonBody));
+
+        result.andExpect(status().isConflict());
+        result.andExpect(jsonPath("$.error").value("Resource conflict exception"));
+        result.andExpect(jsonPath("$.message").value("Direct discount is already applied to this product."));
+    }
+
+    @Test
+    @DisplayName("applyDirectPercentDiscount should return 200 OK with valid discount")
+    void applyDirectPercentDiscount_ShouldReturnOk_WhenValidDirectPercentageDiscount() throws Exception {
+        DirectPercentageDiscountDTO directPercentageDiscountDTO = new DirectPercentageDiscountDTO(BigDecimal.TEN);
+        String jsonBody = objectMapper.writeValueAsString(directPercentageDiscountDTO);
+
+        ResultActions result = mockMvc.perform(post("/api/v1/products/%d/discount/percent".formatted(existingId))
+                .contentType("application/json")
+                .content(jsonBody));
+
+        result.andExpect(status().isOk());
+        result.andExpect(jsonPath("$.id").value(existingId));
+        result.andExpect(jsonPath("$.discount").isNotEmpty());
+        result.andExpect(jsonPath("$.discount.value").value(directPercentageDiscountDTO.percentage()));
+        result.andExpect(jsonPath("$.hasCouponApplied").value(false));
     }
 }
