@@ -276,6 +276,13 @@ Resposta
 * Acabei demorando um pouco nos endpoints de `PATCH`, por conta de sempre estar trabalhando com `PUT`. O `PATCH` é um pouco mais trabalhoso do que o `PUT`, porque não temos o auxilio de ferramentas como o `jakarta validation`, então temos que fazer todas as validações na mão.
 * Por conta desse problema com o tempo não consegui realizar os testes unitários e de integração por completo.
 
+#### Testes
+
+* Mesmo após o encerramento da data de entrega, resolvi realizar os testes para deixar o projeto completo.
+* Os testes unitários foram realizados com o auxílio do plugin JaCoCo para uma cobertura de testes aprofundada.
+
+`![Relatório de Cobertura JaCoCo](https://github.com/user-attachments/assets/c6fb3ab1-0d46-49ed-9786-269f784dc983)`
+
 <h2 id="inicio-frontend">Frontend</h2>
 
 ### Screenshots
