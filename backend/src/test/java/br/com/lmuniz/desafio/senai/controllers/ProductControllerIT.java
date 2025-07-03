@@ -367,4 +367,21 @@ public class ProductControllerIT {
         result.andExpect(jsonPath("$.content[0].discount").exists());
     }
 
+    @Test
+    @DisplayName("partialUpdateProduct should return 200 OK and updated product when patch is valid")
+    void partialUpdateProduct_shouldReturnOk_whenPatchIsValid() throws Exception {
+        String newName = "Cafeteira Elétrica Super Turbo";
+        String patchJson = String.format("""
+        [
+            { "op": "replace", "path": "/name", "value": "%s" }
+        ]
+    """, newName);
+
+        ResultActions result = mockMvc.perform(patch("/api/v1/products/{id}", existingId)
+                .contentType("application/json-patch+json")
+                .content(patchJson));
+
+        result.andExpect(status().isOk());
+        result.andExpect(jsonPath("$.name").value(newName));
+    }
 }
